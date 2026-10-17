@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nullLauncher Mobile — Minecraft Java на Android</title>
+<meta name="description" content="nullLauncher Mobile — Android-лаунчер для запуска Minecraft Java Edition на смартфонах: менеджер версий, Fabric и Forge, моды и модпаки, настройка памяти и управление мирами.">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#090A0D" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="website">
+<meta property="og:title" content="nullLauncher Mobile — Minecraft Java на Android">
+<meta property="og:description" content="Твой Minecraft. Твои правила. Твой nullLauncher. Запуск Minecraft Java Edition на Android: версии, загрузчики модов, моды и модпаки, настройки и миры в одном приложении.">
+<link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;600;700&family=Golos+Text:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script>
+(function () {
+  var t = null;
+  try { t = localStorage.getItem('nlm-site-theme'); } catch (e) {}
+  if (t !== 'dark' && t !== 'light')
+    t = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', t);
+})();
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"nullLauncher Mobile","description":"Android-лаунчер для запуска Minecraft Java Edition: менеджер версий, Fabric/Forge/NeoForge, моды и модпаки, настройки памяти, управление мирами.","applicationCategory":"GameApplication","applicationSubCategory":"Лаунчер Minecraft для Android","operatingSystem":"Android","inLanguage":"ru","url":"https://github.com/rusty-prdc/NullLauncherMobile","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Что такое nullLauncher Mobile?","acceptedAnswer":{"@type":"Answer","text":"nullLauncher Mobile — Android-лаунчер для запуска Minecraft Java Edition на смартфонах с помощью совместимого игрового окружения. Он объединяет установку версий, управление сборками, модами и настройками в одном приложении."}},{"@type":"Question","name":"Нужна ли лицензия Minecraft Java Edition?","acceptedAnswer":{"@type":"Answer","text":"Да, для игры может потребоваться лицензия Minecraft Java Edition. nullLauncher Mobile — сторонний проект, не связанный с Mojang Studios или Microsoft."}},{"@type":"Question","name":"Какие моды и загрузчики поддерживаются?","acceptedAnswer":{"@type":"Answer","text":"Лаунчер устанавливает поддерживаемые загрузчики модов: Fabric, Forge, NeoForge и другие. Находи моды и собирай собственные сборки; интеграция с каталогом Modrinth планируется."}},{"@type":"Question","name":"Какие функции ещё не реализованы?","acceptedAnswer":{"@type":"Answer","text":"Описанные на странице возможности, которые ещё не реализованы, не следует считать доступными в текущей версии. Следи за обновлениями в репозитории проекта на GitHub."}},{"@type":"Question","name":"Бесплатен ли nullLauncher Mobile?","acceptedAnswer":{"@type":"Answer","text":"Да. Проект развивается вместе с XPRODC и распространяется бесплатно."}}]}
+</script>
+</head>
+<body>
+
+<!-- ============================== ШАПКА ============================== -->
+<header class="h-top">
+  <nav class="h-wrap" aria-label="Основное меню">
+    <a class="h-brand" href="#top">
+      <img src="assets/logo.svg" alt="" width="32" height="32">
+      <span>nullLauncher Mobile</span>
+    </a>
+    <div class="h-pillbar" id="navPills">
+      <a class="h-pill" href="#top" aria-current="page">Лаунчер</a>
+      <a class="h-pill" href="#features">Возможности</a>
+      <a class="h-pill" href="#why">Почему</a>
+      <a class="h-pill" href="#start">Начать</a>
+      <a class="h-pill" href="#faq">Вопросы</a>
+    </div>
+    <div class="h-tools">
+      <button class="h-ibtn" id="themeBtn" aria-label="Сменить тему" title="Сменить тему">
+        <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+      <a class="h-ibtn" href="https://github.com/rusty-prdc/NullLauncherMobile" target="_blank" rel="noopener" aria-label="GitHub" title="Исходный код">
+        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.58 2 12.23c0 4.51 2.87 8.34 6.84 9.69.5.09.68-.22.68-.49 0-.24-.01-.87-.01-1.71-2.78.62-3.37-1.37-3.37-1.37-.45-1.19-1.11-1.51-1.11-1.51-.91-.63.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.57 2.34 1.12 2.91.85.09-.66.35-1.12.63-1.38-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.3 9.3 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.79-4.57 5.05.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.59.69.49A10.03 10.03 0 0 0 22 12.23C22 6.58 17.52 2 12 2z"/></svg>
+      </a>
+      <a class="h-btn pri" href="https://github.com/rusty-prdc/NullLauncherMobile" target="_blank" rel="noopener">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
+        <span>Смотреть на GitHub</span>
+      </a>
+      <button class="burger" id="burger" aria-label="Меню"><span></span><span></span><span></span></button>
+    </div>
+  </nav>
+</header>
+
+<main>
+
+<!-- ============================== HERO ============================== -->
+<section class="h-hero" id="top">
+  <div class="h-hero-glow" aria-hidden="true"></div>
+  <div class="h-wrap h-hero-grid">
+    <div class="h-hero-text reveal">
+      <p class="h-kick">Бесплатно · Открытый код · Android</p>
+      <h1>nullLauncher Mobile —<br><em>Minecraft Java на Android</em></h1>
+      <p class="h-lead"><strong>Твой Minecraft. Твои правила. Твой nullLauncher.</strong><br>
+        Запускай Minecraft Java Edition на смартфонах: устанавливай игровые версии, собирай собственные
+        модпаки, управляй модами и настраивай игру под себя — в одном приложении.</p>
+      <div class="h-cta">
+        <a class="h-btn pri xl" href="https://github.com/rusty-prdc/NullLauncherMobile" target="_blank" rel="noopener">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
+          Перейти к проекту
+        </a>
+        <a class="h-btn ghost xl" href="#features">Возможности</a>
+      </div>
+      <p class="h-cta-meta">Релизы и исходный код — на <a href="https://github.com/rusty-prdc/NullLauncherMobile" target="_blank" rel="noopener">GitHub</a></p>
+    </div>
+    <div class="h-hero-fig reveal">
+      <div class="h-stage" style="display:grid;place-items:center;padding:34px 24px">
+        <svg viewBox="0 0 240 460" width="230" role="img" aria-label="Схема телефона с nullLauncher Mobile" style="max-width:100%;height:auto">
+          <rect x="6" y="6" width="228" height="448" rx="34" fill="none" stroke="currentColor" stroke-opacity=".35" stroke-width="3"/>
+          <rect x="18" y="18" width="204" height="424" rx="24" fill="currentColor" fill-opacity=".05"/>
+          <rect x="86" y="30" width="68" height="10" rx="5" fill="currentColor" fill-opacity=".25"/>
+          <rect x="34" y="64" width="172" height="86" rx="14" fill="currentColor" fill-opacity=".1"/>
+          <rect x="46" y="78" width="56" height="58" rx="10" fill="var(--accent)" fill-opacity=".85"/>
+          <rect x="112" y="80" width="80" height="12" rx="6" fill="currentColor" fill-opacity=".3"/>
+          <rect x="112" y="100" width="62" height="9" rx="4.5" fill="currentColor" fill-opacity=".18"/>
+          <rect x="112" y="117" width="74" height="9" rx="4.5" fill="currentColor" fill-opacity=".18"/>
+          <rect x="34" y="164" width="172" height="64" rx="14" fill="currentColor" fill-opacity=".1"/>
+          <rect x="34" y="240" width="172" height="64" rx="14" fill="currentColor" fill-opacity=".1"/>
+          <rect x="34" y="316" width="172" height="64" rx="14" fill="currentColor" fill-opacity=".1"/>
+          <rect x="70" y="398" width="100" height="30" rx="15" fill="var(--accent)"/>
+        </svg>
+      </div>
+      <figcaption>Схема: список сборок, версии и кнопка запуска — как в десктопной версии.</figcaption>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== ЖИВЫЕ ЦИФРЫ ============================== -->
+<section class="h-live" aria-label="nullLauncher Mobile сейчас">
+  <div class="h-wrap">
+    <div class="h-live-row">
+      <div class="h-num reveal"><b id="statReleases">0</b><span>релизов на GitHub</span><small>все версии и списки изменений — открыто</small></div>
+      <div class="h-num reveal"><b id="statStars">0</b><span>звёзд на GitHub</span><small>оценка сообщества проекта</small></div>
+      <div class="h-num reveal"><b>0</b><span>рекламы и трекеров</span><small>проект бесплатный и открытый</small></div>
+    </div>
+    <p class="h-live-note">Цифры живые: подтягиваются из GitHub при открытии страницы.</p>
+  </div>
+</section>
+
+<!-- ============================== ВОЗМОЖНОСТИ (БЕНТО) ============================== -->
+<section class="h-sec" id="features">
+  <div class="h-wrap">
+    <div class="h-head reveal">
+      <span class="h-kick-2">Возможности</span>
+      <h2>Всё, что нужно —<br>в одном приложении</h2>
+      <p>Функции лаунчера: от установки версий до управления мирами. Не реализованное пока не считается доступным — следи за обновлениями.</p>
+    </div>
+
+    <div class="bento">
+      <article class="b-card b-big reveal">
+        <div class="b-body">
+          <h3>🎮 Minecraft Java на телефоне</h3>
+          <p>Запускай Minecraft Java Edition на Android с помощью совместимого игрового окружения —
+            тот же Java-клиент, что и на компьютере, только в кармане.</p>
+        </div>
+      </article>
+
+      <article class="b-card reveal">
+        <div class="b-ic">📦</div>
+        <h3>Менеджер версий</h3>
+        <p>Выбирай версии Minecraft и устанавливай поддерживаемые загрузчики модов: Fabric, Forge, NeoForge и другие.</p>
+      </article>
+
+      <article class="b-card reveal">
+        <div class="b-ic">🧩</div>
+        <h3>Моды и модпаки</h3>
+        <p>Находи моды, собирай собственные сборки и управляй установленными дополнениями. Планируется интеграция с каталогом Modrinth.</p>
+      </article>
+
+      <article class="b-card reveal">
+        <div class="b-ic">⚙️</div>
+        <h3>Гибкие настройки</h3>
+        <p>Настраивай выделение оперативной памяти, параметры игры и другие доступные параметры производительности.</p>
+      </article>
+
+      <article class="b-card reveal">
+        <div class="b-ic">🗺️</div>
+        <h3>Управление мирами</h3>
+        <p>Храни свои миры, создавай резервные копии и переноси сохранения между поддерживаемыми сборками.</p>
+      </article>
+
+      <article class="b-card reveal">
+        <div class="b-ic">🎨</div>
+        <h3>Современный интерфейс</h3>
+        <p>Тёмное оформление, фиолетовые акценты и удобная навигация, разработанные специально для мобильных устройств.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== ПОЧЕМУ ============================== -->
+<section class="h-sec alt" id="why">
+  <div class="h-wrap">
+    <div class="h-head reveal">
+      <span class="h-kick-2">Почему nullLauncher?</span>
+      <h2>Minecraft Java ближе,<br>чем кажется</h2>
+      <p>Мы стремимся сделать запуск Minecraft Java на Android удобнее. Наша цель — объединить установку игры,
+        управление сборками, модами и настройками в одном приложении.</p>
+    </div>
+    <div class="h-cards">
+      <article class="h-card reveal"><h3>Один лаунчер — всё сразу</h3><p>Установка игры, версии и загрузчики модов, сборки, моды, настройки и миры живут в одном приложении, без десятка утилит.</p></article>
+      <article class="h-card reveal"><h3>Вместе с XPRODC</h3><p>nullLauncher Mobile развивается вместе с проектом XPRODC. Впереди — новые функции, улучшения интерфейса и расширение возможностей лаунчера.</p></article>
+      <article class="h-card reveal"><h3>Открытый проект</h3><p>Исходный код открыт на GitHub: можно читать, следить за разработкой, предлагать идеи и сообщать о проблемах.</p></article>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== НАЧАТЬ ============================== -->
+<section class="h-sec" id="start">
+  <div class="h-wrap">
+    <div class="h-head reveal">
+      <span class="h-kick-2">Начни своё приключение</span>
+      <h2>Будь среди первых</h2>
+      <p>Следи за обновлениями nullLauncher Mobile и будь среди первых пользователей новых возможностей.
+        Всё появляется в репозитории проекта — там же релизы и описания изменений.</p>
+    </div>
+    <ol class="h-steps">
+      <li class="reveal">
+        <h3><i>1</i>Открой репозиторий</h3>
+        <p>Все материалы проекта — на GitHub: код, планы, релизы и история изменений.</p>
+      </li>
+      <li class="reveal">
+        <h3><i>2</i>Следи за релизами</h3>
+        <p>Новые версии и функции публикуются с описанием изменений — ничего не прячется.</p>
+      </li>
+      <li class="reveal">
+        <h3><i>3</i>Присоединяйся</h3>
+        <p>Предлагай идеи и сообщай о проблемах через issues на GitHub — проект растёт вместе с сообществом.</p>
+      </li>
+    </ol>
+    <div style="text-align:center;margin-top:34px" class="reveal">
+      <a class="h-btn pri xl" href="https://github.com/rusty-prdc/NullLauncherMobile" target="_blank" rel="noopener">Смотреть проект на GitHub</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== SEO / FAQ ============================== -->
+<div class="h-seo h-wrap">
+  <section class="seo reveal" aria-labelledby="seo-what">
+    <span class="seo-k">О лаунчере</span>
+    <h2 id="seo-what">nullLauncher Mobile — бесплатный лаунчер Minecraft Java для Android</h2>
+    <p class="seo-lead">nullLauncher Mobile — это Android-лаунчер, созданный для запуска Minecraft Java Edition
+      на смартфонах. Устанавливай игровые версии, собирай собственные модпаки, управляй модами
+      и настраивай игру под себя в одном приложении.</p>
+    <ul class="seo-feats">
+      <li><h3>Менеджер версий и загрузчики</h3><p>Выбирай версии Minecraft и устанавливай поддерживаемые загрузчики модов: Fabric, Forge, NeoForge и другие.</p></li>
+      <li><h3>Моды и модпаки</h3><p>Находи моды, собирай собственные сборки и управляй установленными дополнениями. Интеграция с каталогом Modrinth планируется.</p></li>
+      <li><h3>Настройки производительности</h3><p>Выделение оперативной памяти, параметры игры и другие доступные настройки — под твоё устройство.</p></li>
+      <li><h3>Управление мирами</h3><p>Храни миры, создавай резервные копии и переноси сохранения между поддерживаемыми сборками.</p></li>
+      <li><h3>Современный интерфейс</h3><p>Тёмное оформление, фиолетовые акценты и навигация, сделанная под мобильные устройства.</p></li>
+    </ul>
+  </section>
+
+  <section class="seo reveal" id="faq" aria-labelledby="seo-faq">
+    <span class="seo-k">Вопросы</span>
+    <h2 id="seo-faq">Частые вопросы</h2>
+    <div class="seo-faq">
+      <details>
+        <summary>Что такое nullLauncher Mobile?</summary>
+        <div><p>Android-лаунчер для запуска Minecraft Java Edition на смартфонах с помощью совместимого игрового окружения. Он объединяет установку игры, управление сборками, модами и настройками в одном приложении.</p></div>
+      </details>
+      <details>
+        <summary>Нужна ли лицензия Minecraft Java Edition?</summary>
+        <div><p>Да, для игры могут потребоваться лицензия Minecraft Java Edition и совместимое устройство. nullLauncher Mobile — сторонний проект, не связанный с Mojang Studios или Microsoft.</p></div>
+      </details>
+      <details>
+        <summary>Какие загрузчики модов поддерживаются?</summary>
+        <div><p>Лаунчер устанавливает поддерживаемые загрузчики модов: Fabric, Forge, NeoForge и другие. Находи моды, собирай собственные сборки; интеграция с каталогом Modrinth планируется.</p></div>
+      </details>
+      <details>
+        <summary>Бесплатен ли nullLauncher Mobile?</summary>
+        <div><p>Да. Проект развивается вместе с XPRODC, распространяется бесплатно и имеет открытый исходный код на GitHub.</p></div>
+      </details>
+      <details>
+        <summary>Все ли функции уже работают?</summary>
+        <div><p>Нет. Описанные возможности, которые ещё не реализованы, не следует считать доступными в текущей версии. Доступность функций зависит от версии Android и игровой среды; статус разработки смотри в репозитории на GitHub.</p></div>
+      </details>
+      <details>
+        <summary>Как узнать о новых функциях?</summary>
+        <div><p>Следи за обновлениями в репозитории <a href="https://github.com/rusty-prdc/NullLauncherMobile" target="_blank" rel="noopener">NullLauncherMobile на GitHub</a>: релизы и изменения публикуются там.</p></div>
+      </details>
+    </div>
+  </section>
+</div>
+
+<!-- ============================== ФИНАЛЬНЫЙ БЛОК ============================== -->
+<section class="h-final" id="download">
+  <div class="h-wrap">
+    <div class="h-final-box reveal">
+      <div class="f-glow" aria-hidden="true"></div>
+      <div>
+        <h2>nullLauncher Mobile —<br>Minecraft Java ближе, чем кажется</h2>
+        <p>Бесплатно и с открытым исходным кодом. Впереди — новые функции и улучшения интерфейса.</p>
+      </div>
+      <div class="h-final-btns">
+        <a class="h-btn pri xl" href="https://github.com/rusty-prdc/NullLauncherMobile" target="_blank" rel="noopener">Репозиторий на GitHub</a>
+        <a class="h-btn sec xl" href="https://github.com/rusty-prdc/NullLauncherMobile/releases" target="_blank" rel="noopener">Релизы</a>
+        <a class="h-btn sec xl" href="https://github.com/rusty-prdc/NullLauncherMobile/issues" target="_blank" rel="noopener">Сообщить о проблеме</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ============================== ПОДВАЛ ============================== -->
+<footer class="h-foot">
+  <div class="h-wrap">
+    <div class="h-foot-top">
+      <div class="f-brand">
+        <img src="assets/logo.svg" alt="" width="40" height="40" loading="lazy">
+        <span>nullLauncher Mobile</span>
+        <p>Android-лаунчер Minecraft Java: версии, сборки, моды, настройки и миры — в одном приложении.</p>
+        <a class="h-btn pri" href="https://github.com/rusty-prdc/NullLauncherMobile" target="_blank" rel="noopener">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
+          Смотреть на GitHub
+        </a>
+      </div>
+      <div class="h-foot-grid">
+        <div>
+          <h3>Сайт</h3>
+          <ul>
+            <li><a href="#features">Возможности</a></li>
+            <li><a href="#why">Почему nullLauncher</a></li>
+            <li><a href="#start">Начать</a></li>
+            <li><a href="#faq">Частые вопросы</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3>Проект</h3>
+          <ul>
+            <li><a href="https://github.com/rusty-prdc/NullLauncherMobile" target="_blank" rel="noopener">Репозиторий</a></li>
+            <li><a href="https://github.com/rusty-prdc/NullLauncherMobile/releases" target="_blank" rel="noopener">Релизы</a></li>
+            <li><a href="https://github.com/rusty-prdc/NullLauncherMobile/issues" target="_blank" rel="noopener">Сообщить о проблеме</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3>Проекты</h3>
+          <ul>
+            <li><a href="https://github.com/rusty-prdc/NullLauncher" target="_blank" rel="noopener">NullLauncher для ПК</a></li>
+            <li><a href="https://github.com/rusty-prdc/NullLauncherSite" target="_blank" rel="noopener">Сайт NullLauncher</a></li>
+            <li><a href="https://modrinth.com" target="_blank" rel="noopener">Каталог Modrinth</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="h-foot-bot">
+      <span>© 2026 nullLauncher Mobile · проект XPRODC · не связан с Mojang Studios и Microsoft</span>
+      <span>Minecraft — товарный знак Mojang Studios</span>
+    </div>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
