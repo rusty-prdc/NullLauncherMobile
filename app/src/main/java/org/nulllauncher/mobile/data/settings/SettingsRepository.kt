@@ -29,6 +29,7 @@ class SettingsRepository(private val ctx: Context) {
         val LAST_INSTANCE = stringPreferencesKey("last_instance")
         val SNAPSHOTS = booleanPreferencesKey("snapshots")
         val YANDEX_TOKEN = stringPreferencesKey("yandex_token")
+        val THEME = stringPreferencesKey("theme_mode")            // light | dark | system
     }
 
     val memoryMb: Flow<Int> = ctx.ds.data.map { it[K.MEMORY_MB] ?: 2048 }
@@ -40,6 +41,7 @@ class SettingsRepository(private val ctx: Context) {
     val lastInstanceId: Flow<String?> = ctx.ds.data.map { it[K.LAST_INSTANCE] }
     val showSnapshots: Flow<Boolean> = ctx.ds.data.map { it[K.SNAPSHOTS] ?: false }
     val yandexToken: Flow<String?> = ctx.ds.data.map { it[K.YANDEX_TOKEN] }
+    val themeMode: Flow<String> = ctx.ds.data.map { it[K.THEME] ?: "light" }
 
     suspend fun setMemoryMb(v: Int) = ctx.ds.edit { p ->
         p[K.MEMORY_MB] = v.coerceIn(minMemoryMb(), maxMemoryMb())
@@ -58,6 +60,8 @@ class SettingsRepository(private val ctx: Context) {
     suspend fun setYandexToken(v: String?) = ctx.ds.edit { p ->
         if (v != null) p[K.YANDEX_TOKEN] = v else p.remove(K.YANDEX_TOKEN)
     }
+    suspend fun setThemeMode(v: String) = ctx.ds.edit { it[K.THEME] = v }
+    suspend fun currentThemeMode(): String = themeMode.first()
 
     /** Токен Яндекс Диска для облачных бэкапов */
     suspend fun currentYandexToken(): String? = yandexToken.first()

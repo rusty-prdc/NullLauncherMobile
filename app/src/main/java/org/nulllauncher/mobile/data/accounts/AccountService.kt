@@ -75,6 +75,23 @@ class AccountService(private val ctx: Context) {
 
     fun remove(uuid: String) = save(accounts().filterNot { it.uuid == uuid })
 
+    /**
+     * Офлайн-аккаунт: локальное имя без авторизации (для локальной игры/серверов без пароля).
+     * UUID считается как в Minecraft: MD5("OfflinePlayer:<name>") — стабильный.
+     */
+    fun addOffline(rawName: String): Account {
+        val name = rawName.trim().replace(Regex("[^A-Za-z0-9_]"), "").take(16)
+        if (name.length < 3) throw LauncherException("Имя слишком короткое", "от 3 символов: A-Z, a-z, 0-9, _")
+        val md = java.security.MessageDigest.getInstance("MD5")
+        val hash = md.digest("OfflinePlayer:$name".toByteArray(Charsets.UTF_8))
+        hash[6] = ((hash[6].toInt() and 0x0f) or 0x30).toByte()  // version 3
+        hash[8] = ((hash[8].toInt() and 0x3f) or 0x80).toByte()  // variant
+        val uuid = hash.joinToString("") { "%02x".format(it) }
+        val acc = Account(uuid = uuid, name = name, accessToken = "", refreshToken = "", expiresAt = 0)
+        add(acc)
+        return acc
+    }
+
     /** Шаг 1: получить device-code */
     suspend fun requestDeviceCode(): DeviceCode {
         val resp = postForm(

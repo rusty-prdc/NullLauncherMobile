@@ -75,9 +75,23 @@ fun InstancesScreen(app: NullApp, nav: NavController) {
     var deleteTarget by remember { mutableStateOf<Instance?>(null) }
     var showImport by remember { mutableStateOf(false) }
     var importUrl by remember { mutableStateOf("") }
+    var importUri by remember { mutableStateOf<android.net.Uri?>(null) }
+    var importFileName by remember { mutableStateOf<String?>(null) }
     var importStage by remember { mutableStateOf<String?>(null) }
     var importProgress by remember { mutableStateOf<ModpackProgress?>(null) }
     var importError by remember { mutableStateOf<String?>(null) }
+
+    // выбор .mrpack в системном файловом менеджере
+    val pickPack = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) {
+            importUri = uri
+            importUrl = ""
+            importFileName = uri.lastPathSegment?.substringAfterLast('/') ?: "файл.mrpack"
+            importError = null
+        }
+    }
 
     fun refresh() { instances = app.instances.list() }
 
@@ -186,19 +200,35 @@ fun InstancesScreen(app: NullApp, nav: NavController) {
             text = {
                 Column {
                     Text(
-                        "Вставь ссылку на .mrpack с Modrinth — создам сборку, поставлю моды и загрузчик автоматически.",
+                        "Вставь ссылку на проект Modrinth (modrinth.com/modpack/…) или на файл .mrpack — " +
+                            "либо выбери файл с устройства. Сборку, моды и загрузчик поставлю сам.",
                         fontSize = 12.sp, color = Mute,
                     )
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(
                         value = importUrl,
-                        onValueChange = { importUrl = it },
+                        onValueChange = { importUrl = it; importUri = null; importFileName = null },
                         singleLine = true,
                         enabled = importStage == null,
-                        label = { Text("Ссылка на .mrpack") },
-                        placeholder = { Text("https://cdn.modrinth.com/data/…") },
+                        label = { Text("Ссылка на проект или .mrpack") },
+                        placeholder = { Text("https://modrinth.com/modpack/…") },
                         isError = importError != null,
                     )
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(
+                        onClick = {
+                            pickPack.launch(arrayOf("*/*"))
+                        },
+                        enabled = importStage == null,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Icon(Icons.Filled.FileDownload, null, tint = Acc2, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            importFileName ?: "Выбрать файл с устройства…",
+                            fontSize = 12.5.sp, color = Acc2, maxLines = 1,
+                        )
+                    }
                     importError?.let {
                         Spacer(Modifier.height(6.dp))
                         Text(it, fontSize = 11.sp, color = Err)
@@ -221,14 +251,25 @@ fun InstancesScreen(app: NullApp, nav: NavController) {
             },
             confirmButton = {
                 TextButton(
-                    enabled = importStage == null && importUrl.isNotBlank(),
+                    enabled = importStage == null && (importUrl.isNotBlank() || importUri != null),
                     onClick = {
                         importError = null
                         scope.launch {
-                            importStage = "Скачивание модпака…"
+                            importStage = "Подготовка…"
                             importProgress = null
                             try {
-                                val pack = ModpackService.fetch(importUrl.trim()) { importStage = it }
+                                val pack = when {
+                                    importUri != null -> {
+                                        val stream = app.contentResolver.openInputStream(importUri!!)
+                                            ?: throw LauncherException("Не удалось открыть файл", "файл недоступен")
+                                        ModpackService.fetchLocal(stream) { importStage = it }
+                                    }
+                                    else -> {
+                                        importStage = "Поиск модпака…"
+                                        val direct = ModpackService.resolvePackUrl(importUrl)
+                                        ModpackService.fetch(direct) { importStage = it }
+                                    }
+                                }
                                 val idx = pack.index
                                 val loader = ModpackService.loaderOf(idx)
                                 val gameVersion = ModpackService.gameVersionOf(idx)
@@ -271,6 +312,8 @@ fun InstancesScreen(app: NullApp, nav: NavController) {
                                 importStage = null
                                 importProgress = null
                                 importUrl = ""
+                                importUri = null
+                                importFileName = null
                                 refresh()
                                 nav.navigate("instance/${inst.id}")
                             } catch (e: Exception) {
@@ -284,7 +327,8 @@ fun InstancesScreen(app: NullApp, nav: NavController) {
             },
             dismissButton = {
                 TextButton(
-                    onClick = { if (importStage == null) showImport = false },
+                    enabled = importStage == null,
+                    onClick = { showImport = false },
                 ) { Text("Отмена", color = Mute) }
             },
         )

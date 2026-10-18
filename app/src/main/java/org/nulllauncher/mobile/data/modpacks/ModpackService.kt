@@ -79,27 +79,92 @@ object ModpackService {
         }
     }
 
+    /**
+     * Превратить ввод пользователя в прямую ссылку на .mrpack:
+     * - ссылка на проект Modrinth (modrinth.com/modpack/…, modrinth.com/shaderpack/…) →
+     *   берём свежую версию с файлом .mrpack через API;
+     * - «голый» slug проекта (better-minecraft) → то же самое;
+     * - прямая ссылка на .mrpack → как есть.
+     */
+    suspend fun resolvePackUrl(input: String): String {
+        val trimmed = input.trim()
+        if (trimmed.contains(".mrpack")) return trimmed
+
+        val slug = extractSlug(trimmed) ?: throw LauncherException(
+            "Не понял ссылку",
+            "Поддерживаются ссылка на проект Modrinth (modrinth.com/modpack/…) " +
+                "или прямая ссылка на файл .mrpack",
+        )
+        val versions = try {
+            org.nulllauncher.mobile.data.modrinth.ModrinthService.versions(slug)
+        } catch (e: Exception) {
+            throw LauncherException("Проект не найден", "Проверь ссылку: $slug")
+        }
+        val packUrl = versions.firstNotNullOfOrNull { v ->
+            v.files.firstOrNull { f -> f.filename.endsWith(".mrpack") }?.url
+        } ?: throw LauncherException(
+            "Это не модпак",
+            "В проекте «$slug» нет файла .mrpack — выбери модпак, а не мод",
+        )
+        return packUrl
+    }
+
+    /** slug из URL Modrinth: modrinth.com/<тип>/<slug> */
+    private fun extractSlug(input: String): String? {
+        val cleaned = input.trim().removeSuffix("/")
+        Regex("modrinth\\.com/[A-Za-z0-9_-]+/([A-Za-z0-9_-]+)").find(cleaned)?.let {
+            return it.groupValues[1]
+        }
+        if (Regex("^[A-Za-z0-9_-]{3,64}$").matches(cleaned) && !cleaned.contains("://")) {
+            return cleaned
+        }
+        return null
+    }
+
     suspend fun fetch(url: String, onStage: (String) -> Unit): FetchedPack =
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
             val tmpPack = File.createTempFile("pack", ".mrpack")
-            val tmpDir = File.createTempFile("packx", "").apply { delete(); mkdirs() }
             try {
                 onStage("Скачивание модпака…")
                 downloadPack(url, tmpPack)
                 onStage("Чтение содержимого…")
-                ZipUtil.unzip(tmpPack, tmpDir)
             } catch (e: Exception) {
-                tmpDir.deleteRecursively()
+                tmpPack.delete()
                 throw e
+            }
+            try {
+                prepareIndex(tmpPack)
             } finally {
                 tmpPack.delete()
             }
+        }
+
+    /** Импорт локального файла (выбран в файловом менеджере) */
+    suspend fun fetchLocal(
+        src: java.io.InputStream,
+        onStage: (String) -> Unit,
+    ): FetchedPack = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        val tmpPack = File.createTempFile("pack", ".mrpack")
+        try {
+            onStage("Чтение файла…")
+            src.use { input -> tmpPack.outputStream().use { output -> input.copyTo(output) } }
+            prepareIndex(tmpPack)
+        } finally {
+            tmpPack.delete()
+        }
+    }
+
+    /** Общая логика: распаковать архив и разобрать modrinth.index.json */
+    private fun prepareIndex(tmpPack: File): FetchedPack {
+        val tmpDir = File.createTempFile("packx", "").apply { delete(); mkdirs() }
+        try {
+            ZipUtil.unzip(tmpPack, tmpDir)
             val indexFile = File(tmpDir, "modrinth.index.json")
             if (!indexFile.exists()) {
                 tmpDir.deleteRecursively()
                 throw LauncherException(
                     "Это не модпак Modrinth",
-                    "В архиве нет modrinth.index.json — поддерживается формат .mrpack",
+                    "В архиве нет modrinth.index.json — поддерживаются форматы .mrpack",
                 )
             }
             val index = json.decodeFromString<MrpackIndex>(indexFile.readText())
@@ -107,8 +172,12 @@ object ModpackService {
                 tmpDir.deleteRecursively()
                 throw LauncherException("Не Minecraft-пак", index.game)
             }
-            FetchedPack(tmpDir, index)
+            return FetchedPack(tmpDir, index)
+        } catch (e: Exception) {
+            tmpDir.deleteRecursively()
+            throw e
         }
+    }
 
     /** Шаг 2: разложить файлы пака по папкам созданной сборки */
     suspend fun installFiles(

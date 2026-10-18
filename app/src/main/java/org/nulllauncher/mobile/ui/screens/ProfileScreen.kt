@@ -3,6 +3,7 @@ package org.nulllauncher.mobile.ui.screens
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,7 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -34,6 +36,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -87,6 +90,10 @@ fun ProfileScreen(app: NullApp, nav: NavController) {
     var deviceCode by remember { mutableStateOf<AccountService.DeviceCode?>(null) }
     var waiting by remember { mutableStateOf(false) }
     var loginError by remember { mutableStateOf<String?>(null) }
+    var themeMode by remember { mutableStateOf("light") }
+    var showOffline by remember { mutableStateOf(false) }
+    var offlineName by remember { mutableStateOf("") }
+    var offlineError by remember { mutableStateOf<String?>(null) }
 
     // Безопасные значения по умолчанию — до загрузки из DataStore
     var memoryMb by remember { mutableFloatStateOf(2048f) }
@@ -109,6 +116,7 @@ fun ProfileScreen(app: NullApp, nav: NavController) {
             touchControls = app.settings.touchControls.first()
             renderScale = app.settings.renderScale.first().toFloat()
             guiScale = app.settings.guiScale.first()
+            themeMode = app.settings.currentThemeMode()
         } catch (_: Exception) {
             // дефолты уже стоят
         }
@@ -178,6 +186,20 @@ fun ProfileScreen(app: NullApp, nav: NavController) {
                         Spacer(Modifier.height(8.dp))
                         Text(it, color = Err, fontSize = 12.sp)
                     }
+                    Spacer(Modifier.height(10.dp))
+                    HorizontalDivider(color = Line)
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "Офлайн-аккаунт — локальное имя для игры без авторизации. " +
+                            "На таких серверах, где не проверяют лицензию.",
+                        fontSize = 11.sp, color = Mute,
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    OutlinedButton(
+                        onClick = { showOffline = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !waiting,
+                    ) { Text("Офлайн-аккаунт", fontSize = 13.sp, color = Acc2) }
                 } else {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
@@ -187,7 +209,11 @@ fun ProfileScreen(app: NullApp, nav: NavController) {
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) {
                             Text(account!!.name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            Text("Microsoft · ${account!!.uuid.take(8)}…", fontSize = 11.sp, color = Mute)
+                            Text(
+                                if (account!!.accessToken.isBlank()) "Офлайн · ${account!!.uuid.take(8)}…"
+                                else "Microsoft · ${account!!.uuid.take(8)}…",
+                                fontSize = 11.sp, color = Mute,
+                            )
                         }
                         TextButton(onClick = {
                             scope.launch {
@@ -314,6 +340,40 @@ fun ProfileScreen(app: NullApp, nav: NavController) {
 
         Spacer(Modifier.height(14.dp))
 
+        // ---------- тема ----------
+        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+            Column(Modifier.padding(16.dp)) {
+                Text("Тема оформления", fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp)
+                Spacer(Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("light" to "Светлая", "dark" to "Тёмная", "system" to "Системная").forEach { (id, label) ->
+                        val selected = themeMode == id
+                        Box(
+                            Modifier
+                                .weight(1f)
+                                .height(40.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (selected) AccSoft else MaterialTheme.colorScheme.surfaceVariant)
+                                .clickable {
+                                    themeMode = id
+                                    scope.launch { app.settings.setThemeMode(id) }
+                                },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                label,
+                                fontSize = 12.5.sp,
+                                color = if (selected) Acc2 else Mute,
+                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(14.dp))
+
         // ---------- о приложении / логи ----------
         Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp)) {
@@ -353,6 +413,51 @@ fun ProfileScreen(app: NullApp, nav: NavController) {
         }
 
         Spacer(Modifier.height(24.dp))
+    }
+
+    // ---------- диалог офлайн-аккаунта ----------
+    if (showOffline) {
+        AlertDialog(
+            onDismissRequest = { showOffline = false },
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = { Text("Офлайн-аккаунт", fontSize = 15.sp) },
+            text = {
+                Column {
+                    Text(
+                        "Придумай ник (3–16 символов: буквы, цифры, _). Без авторизации — для локальных миров " +
+                            "и серверов, которые не проверяют лицензию.",
+                        fontSize = 12.sp, color = Mute,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = offlineName,
+                        onValueChange = { offlineName = it; offlineError = null },
+                        singleLine = true,
+                        label = { Text("Ник игрока") },
+                        isError = offlineError != null,
+                    )
+                    offlineError?.let {
+                        Spacer(Modifier.height(4.dp))
+                        Text(it, fontSize = 11.sp, color = Err)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    try {
+                        account = app.accounts.addOffline(offlineName)
+                        showOffline = false
+                        offlineName = ""
+                        offlineError = null
+                    } catch (e: Exception) {
+                        offlineError = e.message ?: "Не получилось создать аккаунт"
+                    }
+                }) { Text("Создать", color = Acc2) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showOffline = false }) { Text("Отмена", color = Mute) }
+            },
+        )
     }
 }
 
