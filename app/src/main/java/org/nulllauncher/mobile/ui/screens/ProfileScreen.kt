@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Person
@@ -315,6 +316,12 @@ fun ProfileScreen(app: NullApp, nav: NavController) {
         // ---------- о приложении / логи ----------
         Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp)) {
+                TextButton(onClick = { nav.navigate("subscription") }, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Filled.Star, null, tint = Acc2, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Премиум подписка", fontSize = 13.sp, color = Acc2)
+                }
+                HorizontalDivider(color = Line)
                 TextButton(onClick = { nav.navigate("logs") }, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Filled.Description, null, tint = Acc2, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))

@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import org.nulllauncher.mobile.data.accounts.Account
 import org.nulllauncher.mobile.data.accounts.AccountService
+import org.nulllauncher.mobile.data.billing.SubscriptionManager
 import org.nulllauncher.mobile.data.instances.InstanceRepository
 import org.nulllauncher.mobile.data.launch.LaunchService
 import org.nulllauncher.mobile.data.modrinth.ModrinthService
@@ -21,6 +22,9 @@ class NullApp : Application() {
     val versions by lazy { VersionManager(this) }
     val accounts by lazy { AccountService(this) }
     val launcher by lazy { LaunchService(this) }
+
+    /** Биллинг и подписка (заготовка под Google Play) */
+    val billing by lazy { SubscriptionManager(this) }
 
     /** Прогресс установки компонентов для главного экрана */
     val installProgress = MutableStateFlow<InstallProgress?>(null)
@@ -47,6 +51,7 @@ class NullApp : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        billing.connect()
 
         // Глобальный ловитель падений: пишем стек в файл, чтобы разобраться с вылетами
         val previous = Thread.getDefaultUncaughtExceptionHandler()

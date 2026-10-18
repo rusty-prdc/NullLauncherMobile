@@ -46,6 +46,7 @@ import org.nulllauncher.mobile.ui.screens.InstanceDetailScreen
 import org.nulllauncher.mobile.ui.screens.InstancesScreen
 import org.nulllauncher.mobile.ui.screens.LogsScreen
 import org.nulllauncher.mobile.ui.screens.ProfileScreen
+import org.nulllauncher.mobile.ui.screens.SubscriptionScreen
 import org.nulllauncher.mobile.ui.screens.VersionsScreen
 import org.nulllauncher.mobile.ui.theme.Acc
 import org.nulllauncher.mobile.ui.theme.Acc2
@@ -133,6 +134,7 @@ private fun MainNav() {
                 composable("versions") { VersionsScreen(app, nav) }
                 composable("catalog") { CatalogScreen(app, nav) }
                 composable("profile") { ProfileScreen(app, nav) }
+                composable("subscription") { SubscriptionScreen(app, nav, app.billing) }
                 composable("logs") { LogsScreen(app, nav) }
                 composable(
                     "instance/{instanceId}",

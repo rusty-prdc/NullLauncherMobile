@@ -52,4 +52,6 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     // распаковка Java Runtime (.tar.xz) — та же библиотека, что у XZ Utils
     implementation("org.tukaani:xz:1.9")
+    // Google Play Billing — заготовка под платную подписку
+    implementation("com.android.billingclient:billing:6.2.1")
 }
