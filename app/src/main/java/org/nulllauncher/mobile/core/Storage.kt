@@ -30,6 +30,10 @@ object Storage {
         File(instanceDir(ctx, instanceId), "saves").apply { mkdirs() }
     fun instanceResourcePacks(ctx: Context, instanceId: String): File =
         File(instanceDir(ctx, instanceId), "resourcepacks").apply { mkdirs() }
+    fun instanceShaderPacks(ctx: Context, instanceId: String): File =
+        File(instanceDir(ctx, instanceId), "shaderpacks").apply { mkdirs() }
+    fun instanceDataPacks(ctx: Context, instanceId: String): File =
+        File(instanceDir(ctx, instanceId), "datapacks").apply { mkdirs() }
 
     /** Свободное место в байтах на разделе files */
     fun freeBytes(ctx: Context): Long = root(ctx).usableSpace

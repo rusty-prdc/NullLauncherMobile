@@ -76,7 +76,7 @@ fun CatalogScreen(app: NullApp, nav: NavController, initialInstanceId: String? =
     var query by remember { mutableStateOf("") }
     var hits by remember { mutableStateOf<List<ModHit>>(emptyList()) }
     var searching by remember { mutableStateOf(false) }
-    var type by remember { mutableStateOf("mod") } // mod | modpack | resourcepack
+    var type by remember { mutableStateOf("mod") } // mod | modpack | resourcepack | shaderpack | datapack
     var installed by remember { mutableStateOf<Set<String>>(emptySet()) }
     var installingSlug by remember { mutableStateOf<String?>(null) }
     var installProgress by remember { mutableStateOf<InstallProgress?>(null) }
@@ -93,8 +93,12 @@ fun CatalogScreen(app: NullApp, nav: NavController, initialInstanceId: String? =
 
     fun refreshInstalled() {
         installed = if (target != null) {
-            val dir = if (type == "resourcepack") Storage.instanceResourcePacks(app, target.id)
-            else Storage.instanceMods(app, target.id)
+            val dir = when (type) {
+                "resourcepack" -> Storage.instanceResourcePacks(app, target.id)
+                "shaderpack" -> Storage.instanceShaderPacks(app, target.id)
+                "datapack" -> Storage.instanceDataPacks(app, target.id)
+                else -> Storage.instanceMods(app, target.id)
+            }
             dir.listFiles()
                 ?.map {
                     it.name.removeSuffix(".disabled")
@@ -161,6 +165,11 @@ fun CatalogScreen(app: NullApp, nav: NavController, initialInstanceId: String? =
             FilterChip("Моды", type == "mod") { type = "mod" }
             FilterChip("Модпаки", type == "modpack") { type = "modpack" }
             FilterChip("Ресурс-паки", type == "resourcepack") { type = "resourcepack" }
+        }
+        Spacer(Modifier.height(6.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip("Шейдеры", type == "shaderpack") { type = "shaderpack" }
+            FilterChip("Датапаки", type == "datapack") { type = "datapack" }
         }
 
         Spacer(Modifier.height(10.dp))
@@ -283,6 +292,8 @@ fun CatalogScreen(app: NullApp, nav: NavController, initialInstanceId: String? =
                                     when (type) {
                                         "resourcepack" -> "ресурс-пак"
                                         "modpack" -> "модпак"
+                                        "shaderpack" -> "шейдерпак"
+                                        "datapack" -> "датапак"
                                         else -> "мод"
                                     },
                                     fontSize = 9.5.sp, color = Mute,
@@ -323,15 +334,25 @@ fun CatalogScreen(app: NullApp, nav: NavController, initialInstanceId: String? =
                                             ?: throw LauncherException("Нет версии для ${t2.versionId} · ${loaderLabel(t2)}", hit.title)
                                         val file = ver.files.firstOrNull { f -> f.primary } ?: ver.files.firstOrNull()
                                             ?: throw LauncherException("В версии нет файла", ver.name)
-                                        val isPack = type == "resourcepack"
-                                        val dest = if (isPack) Storage.instanceResourcePacks(app, t2.id)
-                                            else Storage.instanceMods(app, t2.id)
+                                        val isPack = type != "mod" && type != "modpack"
+                                        val dest = when (type) {
+                                            "resourcepack" -> Storage.instanceResourcePacks(app, t2.id)
+                                            "shaderpack" -> Storage.instanceShaderPacks(app, t2.id)
+                                            "datapack" -> Storage.instanceDataPacks(app, t2.id)
+                                            else -> Storage.instanceMods(app, t2.id)
+                                        }
                                         ModrinthService.installFile(file, dest) { d, tg ->
                                             installProgress = InstallProgress("Скачивание ${file.filename}", d, tg)
                                         }
                                         app.logDownload(
                                             hit.title,
-                                            (if (isPack) "Ресурс-пак" else "Мод") + " → ${t2.name}",
+                                            (when (type) {
+                                                "resourcepack" -> "Ресурс-пак"
+                                                "shaderpack" -> "Шейдерпак"
+                                                "datapack" -> "Датапак"
+                                                "modpack" -> "Модпак"
+                                                else -> "Мод"
+                                            }) + " → ${t2.name}",
                                             file.size,
                                             true,
                                         )
@@ -371,11 +392,11 @@ fun CatalogScreen(app: NullApp, nav: NavController, initialInstanceId: String? =
  * Проверка совместимости цели (null = совместимо).
  * - ваниль не грузит моды вообще;
  * - модпаки в ваниль тоже нельзя;
- * - ресурс-паки можно в любую сборку;
+ * - ресурс-паки, шейдерпаки и датапаки можно в любую сборку;
  * - моды требуют версию MC и загрузчик из списка проекта.
  */
 private fun compatibilityNote(t: Instance, type: String, hit: ModHit? = null): String? {
-    if (type == "resourcepack") return null
+    if (type == "resourcepack" || type == "datapack" || type == "shaderpack") return null
     if (t.loader == "vanilla") {
         return if (type == "modpack") "Модпак нельзя запустить на Vanilla — нужна сборка с Fabric/Forge/NeoForge/Quilt"
         else "Моды не работают на Vanilla — выбери сборку с Fabric/Forge/Quilt"
