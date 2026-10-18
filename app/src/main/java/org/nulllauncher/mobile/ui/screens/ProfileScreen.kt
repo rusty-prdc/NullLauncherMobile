@@ -112,7 +112,7 @@ fun ProfileScreen(app: NullApp, nav: NavController) {
             // дефолты уже стоят
         }
         try {
-            storageText = app.versions.freeSpaceText()
+            storageText = app.versions.freeMemoryText()
             versionsCount = app.versionsCount()
             instancesCount = app.instances.list().size
         } catch (_: Exception) {

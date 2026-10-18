@@ -186,10 +186,10 @@ class VersionManager(private val ctx: Context) {
     /** features в правилах (напр. is_demo_user). У нас нет демо-режима — считаем удовлетворённым. */
     private fun featuresSatisfied(features: Map<String, Boolean>): Boolean = true
 
-    fun freeSpaceText(): String {
+    fun freeMemoryText(): String {
         val free = Storage.freeBytes(ctx)
         val total = Storage.totalBytes(ctx)
-        return "занято ${fmt(total - free)} · свободно ${fmt(free)}"
+        return "${fmt(free)} свободно из ${fmt(total)}"
     }
 
     /** Количество установленных каталогов версий (с json+jar) */

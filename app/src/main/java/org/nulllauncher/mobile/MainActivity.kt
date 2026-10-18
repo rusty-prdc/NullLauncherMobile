@@ -42,12 +42,14 @@ import kotlinx.coroutines.delay
 import org.nulllauncher.mobile.ui.screens.BottomBar
 import org.nulllauncher.mobile.ui.screens.CatalogScreen
 import org.nulllauncher.mobile.ui.screens.HomeScreen
+import org.nulllauncher.mobile.ui.screens.InstanceCreationWizard
 import org.nulllauncher.mobile.ui.screens.InstanceDetailScreen
 import org.nulllauncher.mobile.ui.screens.InstancesScreen
 import org.nulllauncher.mobile.ui.screens.LogsScreen
 import org.nulllauncher.mobile.ui.screens.ProfileScreen
 import org.nulllauncher.mobile.ui.screens.SubscriptionScreen
 import org.nulllauncher.mobile.ui.screens.VersionsScreen
+import org.nulllauncher.mobile.data.instances.Instance
 import org.nulllauncher.mobile.ui.theme.Acc
 import org.nulllauncher.mobile.ui.theme.Acc2
 import org.nulllauncher.mobile.ui.theme.NullTheme
@@ -135,6 +137,12 @@ private fun MainNav() {
                 composable("catalog") { CatalogScreen(app, nav) }
                 composable("profile") { ProfileScreen(app, nav) }
                 composable("subscription") { SubscriptionScreen(app, nav, app.billing) }
+                composable("create_instance") {
+                    InstanceCreationWizard(app, nav) { inst: Instance ->
+                        nav.popBackStack()
+                        nav.navigate("instance/${inst.id}")
+                    }
+                }
                 composable("logs") { LogsScreen(app, nav) }
                 composable(
                     "instance/{instanceId}",

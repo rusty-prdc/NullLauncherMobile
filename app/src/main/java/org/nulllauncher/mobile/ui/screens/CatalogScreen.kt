@@ -21,6 +21,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -54,6 +56,7 @@ import org.nulllauncher.mobile.core.Storage
 import org.nulllauncher.mobile.data.instances.Instance
 import org.nulllauncher.mobile.data.modrinth.ModHit
 import org.nulllauncher.mobile.data.modrinth.ModrinthService
+import org.nulllauncher.mobile.ui.theme.Acc
 import org.nulllauncher.mobile.ui.theme.Acc2
 import org.nulllauncher.mobile.ui.theme.AccSoft
 import org.nulllauncher.mobile.ui.theme.Card2
@@ -150,25 +153,60 @@ fun CatalogScreen(app: NullApp, nav: NavController) {
         Spacer(Modifier.height(10.dp))
 
         // ---------- выбор целевой сборки ----------
-        InstancePicker(
-            instances = instances,
-            selected = target,
-            onSelect = {
-                targetId = it?.id
-                refreshInstalled()
-            },
-        )
+        if (target == null) {
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(80.dp)
+                    .background(ErrSoft)
+                    .clip(RoundedCornerShape(16.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Filled.Warning, null, tint = Err, modifier = Modifier.size(24.dp))
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "Нет сборок для установки модов",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp,
+                        color = Err,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "Сначала создай сборку в разделе «Сборки»",
+                        fontSize = 11.sp,
+                        color = Mute,
+                    )
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            Button(
+                onClick = { nav.navigate("create_instance") },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = Acc),
+            ) {
+                Text("Создать коллекцию", color = Color.White, fontWeight = FontWeight.SemiBold)
+            }
+            Spacer(Modifier.height(16.dp))
+        } else {
+            InstancePicker(
+                instances = instances,
+                selected = target,
+                onSelect = {
+                    targetId = it?.id
+                    refreshInstalled()
+                },
+            )
 
-        // ---------- совместимость ----------
-        target?.let { t ->
-            val compat = compatibilityNote(t, type)
+            // ---------- совместимость ----------
+            val compat = compatibilityNote(target, type)
             Spacer(Modifier.height(8.dp))
             if (compat == null) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.Extension, null, tint = Ok, modifier = Modifier.size(14.dp))
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        "Совместимо: ${t.versionId} · ${loaderLabel(t)}",
+                        "Совместимо: ${target!!.versionId} · ${loaderLabel(target)}",
                         fontSize = 11.5.sp, color = Ok,
                     )
                 }

@@ -24,21 +24,15 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -52,10 +46,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
-import org.nulllauncher.mobile.InstallProgress
 import org.nulllauncher.mobile.NullApp
 import org.nulllauncher.mobile.data.instances.Instance
-import org.nulllauncher.mobile.data.loaders.LoaderService
 import org.nulllauncher.mobile.ui.theme.Acc
 import org.nulllauncher.mobile.ui.theme.Acc2
 import org.nulllauncher.mobile.ui.theme.AccSoft
@@ -66,27 +58,19 @@ import org.nulllauncher.mobile.ui.theme.Mute
 /**
  * Сборки: создание, переименование, копия, удаление с подтверждением, память.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InstancesScreen(app: NullApp, nav: NavController) {
     val scope = rememberCoroutineScope()
     var instances by remember { mutableStateOf(app.instances.list()) }
-    var showCreate by remember { mutableStateOf(false) }
     var editTarget by remember { mutableStateOf<Instance?>(null) }
     var deleteTarget by remember { mutableStateOf<Instance?>(null) }
-    var gameVersions by remember { mutableStateOf<List<String>>(emptyList()) }
 
-    androidx.compose.runtime.LaunchedEffect(Unit) {
-        if (gameVersions.isEmpty()) {
-            gameVersions = app.versions.manifest().versions.filter { it.type == "release" }.map { it.id }
-        }
-    }
     fun refresh() { instances = app.instances.list() }
 
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("Сборки", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
-            IconButton(onClick = { showCreate = true }) {
+            IconButton(onClick = { nav.navigate("create_instance") }) {
                 Icon(Icons.Filled.Add, "Создать сборку", tint = Color.White)
             }
         }
@@ -137,87 +121,6 @@ fun InstancesScreen(app: NullApp, nav: NavController) {
                 }
             }
         }
-    }
-
-    // ---------- диалог создания ----------
-    if (showCreate && gameVersions.isNotEmpty()) {
-        var name by remember { mutableStateOf("") }
-        var version by remember { mutableStateOf(gameVersions.first()) }
-        var loader by remember { mutableStateOf("vanilla") }
-        var loaderExpanded by remember { mutableStateOf(false) }
-        var versionExpanded by remember { mutableStateOf(false) }
-        var mem by remember { mutableFloatStateOf(2f) }
-
-        AlertDialog(
-            onDismissRequest = { showCreate = false },
-            containerColor = MaterialTheme.colorScheme.surface,
-            title = { Text("Новая сборка") },
-            text = {
-                Column {
-                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Название") }, singleLine = true)
-                    Spacer(Modifier.height(8.dp))
-                    ExposedDropdownMenuBox(expanded = versionExpanded, onExpandedChange = { versionExpanded = it }) {
-                        OutlinedTextField(
-                            value = version, onValueChange = {}, readOnly = true,
-                            label = { Text("Версия Minecraft") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(versionExpanded) },
-                            modifier = Modifier.menuAnchor().fillMaxWidth(),
-                        )
-                        ExposedDropdownMenu(expanded = versionExpanded, onDismissRequest = { versionExpanded = false }) {
-                            gameVersions.take(40).forEach { v ->
-                                DropdownMenuItem(text = { Text(v) }, onClick = { version = v; versionExpanded = false })
-                            }
-                        }
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    ExposedDropdownMenuBox(expanded = loaderExpanded, onExpandedChange = { loaderExpanded = it }) {
-                        OutlinedTextField(
-                            value = when (loader) { "fabric" -> "Fabric"; "forge" -> "Forge"; "quilt" -> "Quilt"; else -> "Vanilla" },
-                            onValueChange = {}, readOnly = true,
-                            label = { Text("Загрузчик модов") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(loaderExpanded) },
-                            modifier = Modifier.menuAnchor().fillMaxWidth(),
-                        )
-                        ExposedDropdownMenu(expanded = loaderExpanded, onDismissRequest = { loaderExpanded = false }) {
-                            listOf("vanilla" to "Vanilla", "fabric" to "Fabric", "forge" to "Forge", "quilt" to "Quilt").forEach { (id, label) ->
-                                DropdownMenuItem(text = { Text(label) }, onClick = { loader = id; loaderExpanded = false })
-                            }
-                        }
-                    }
-                    Spacer(Modifier.height(12.dp))
-                    Text("Память: ${mem.toInt()} ГБ", fontSize = 13.sp)
-                    Slider(value = mem, onValueChange = { mem = it }, valueRange = 1f..4f, steps = 2)
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    val created = app.instances.create(
-                        name = name.ifBlank { "Сборка $version" },
-                        versionId = version,
-                        loader = loader,
-                    ).let { created ->
-                        app.instances.update(created.copy(memoryMb = mem.toInt() * 1024))
-                    }
-                    showCreate = false
-                    refresh()
-                    if (loader != "vanilla") {
-                        scope.launch {
-                            try {
-                                val lv = LoaderService.latestLoader(loader)
-                                LoaderService.installLoader(app, loader, version, lv.version) { s, d, t ->
-                                    app.installProgress.value = InstallProgress(s, d, t)
-                                }
-                            } catch (e: Exception) {
-                                app.lastError.value = e.message ?: "Ошибка установки загрузчика"
-                            } finally {
-                                app.installProgress.value = null
-                            }
-                        }
-                    }
-                }) { Text("Создать", color = Acc) }
-            },
-            dismissButton = { TextButton(onClick = { showCreate = false }) { Text("Отмена", color = Mute) } },
-        )
     }
 
     // ---------- диалог переименования ----------
