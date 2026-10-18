@@ -50,7 +50,7 @@ import org.nulllauncher.mobile.ui.theme.Mute
 
 /**
  * Экран подписки (заготовка под монетизацию).
- * Премиум: безлимит сборок, модпаки, тач-редактор, облачные бэкапы.
+ * Премиум: безлимит сборок, модпаки, тач-редактор, облачные бэкапы, ИИ-помощник.
  */
 @Composable
 fun SubscriptionScreen(app: NullApp, nav: NavController, billing: SubscriptionManager) {
@@ -79,7 +79,7 @@ fun SubscriptionScreen(app: NullApp, nav: NavController, billing: SubscriptionMa
                 Icon(Icons.Filled.Star, null, tint = Acc, modifier = Modifier.size(40.dp))
                 Spacer(Modifier.height(12.dp))
                 Text("nullLauncher Premium", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Text("Поддержка разработки и дополнительные функции", fontSize = 12.sp, color = Mute)
+                Text("Безлимит сборок, ИИ-помощник и поддержка разработки", fontSize = 12.sp, color = Mute)
             }
         }
 
@@ -98,6 +98,10 @@ fun SubscriptionScreen(app: NullApp, nav: NavController, billing: SubscriptionMa
                     "Импорт модпаков (.mrpack / CurseForge)",
                     "Редактор сенсорного управления с профилями раскладок",
                     "Облачные бэкапы сборок и миров",
+                    "ИИ-помощник: объяснит ошибку запуска или вылет простыми словами",
+                    "ИИ-подбор модов под твою сборку и версию, проверка совместимости",
+                    "ИИ-оптимизация: настройки памяти и FPS под твоё устройство",
+                    "ИИ-рекомендации: что обновить в сборке и чем она грузится",
                     "Приоритетная техподдержка"
                 )
                 features.forEach { feature ->
@@ -107,6 +111,12 @@ fun SubscriptionScreen(app: NullApp, nav: NavController, billing: SubscriptionMa
                         Text(feature, fontSize = 13.sp)
                     }
                 }
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "ИИ-функции работают через ИИ-сервер проекта и подключаются постепенно — появляются в обновлениях. " +
+                        "В бесплатной версии доступны до 3 сборок, ИИ-помощник входит только в Premium.",
+                    fontSize = 11.sp, color = Mute,
+                )
             }
         }
 
