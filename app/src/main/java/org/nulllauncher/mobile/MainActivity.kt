@@ -41,6 +41,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import kotlinx.coroutines.delay
 import org.nulllauncher.mobile.ui.screens.AIScreen
+import org.nulllauncher.mobile.ui.screens.AiChatScreen
 import org.nulllauncher.mobile.ui.screens.BottomBar
 import org.nulllauncher.mobile.ui.screens.CatalogScreen
 import org.nulllauncher.mobile.ui.screens.DownloadsScreen
@@ -151,6 +152,7 @@ private fun MainNav() {
                 composable("profile") { ProfileScreen(app, nav) }
                 composable("subscription") { SubscriptionScreen(app, nav, app.billing) }
                 composable("ai") { AIScreen(app, nav) }
+                composable("ai_chat") { AiChatScreen(app, nav) }
                 composable("create_instance") {
                     InstanceCreationWizard(app, nav) { inst: Instance ->
                         nav.popBackStack()

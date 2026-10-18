@@ -283,6 +283,14 @@ fun HomeScreen(app: NullApp, nav: NavController) {
                     }
                 }
             }
+            // диагноз по правилам + кнопка «Спросить ИИ»
+            CrashDiagnosisCard(
+                app = app,
+                nav = nav,
+                log = app.launchLog.value + "\n" + err,
+                instanceId = selected?.id,
+                ramMb = selected?.memoryMb ?: 2048,
+            )
         }
 
         Spacer(Modifier.height(14.dp))

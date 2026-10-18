@@ -131,8 +131,19 @@ fun LogsScreen(app: NullApp, nav: NavController) {
                 }
             },
             confirmButton = {
-                androidx.compose.material3.TextButton(onClick = { openFile = null }) {
-                    Text("Закрыть", color = Acc2)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (app.billing.isPremiumActive()) {
+                        androidx.compose.material3.TextButton(onClick = {
+                            app.aiContext.value = text.takeLast(20_000)
+                            openFile = null
+                            nav.navigate("ai_chat")
+                        }) {
+                            Text("Спросить ИИ", color = Acc2)
+                        }
+                    }
+                    androidx.compose.material3.TextButton(onClick = { openFile = null }) {
+                        Text("Закрыть", color = Acc2)
+                    }
                 }
             },
         )

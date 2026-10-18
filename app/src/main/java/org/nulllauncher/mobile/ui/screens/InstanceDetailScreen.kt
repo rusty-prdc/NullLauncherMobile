@@ -221,6 +221,14 @@ fun InstanceDetailScreen(app: NullApp, nav: NavController, instanceId: String) {
                             Spacer(Modifier.height(6.dp))
                             Text(st.title, fontSize = 11.sp, color = Err)
                             Text(st.details, fontSize = 10.sp, color = Mute, maxLines = 3)
+                            // диагноз по правилам + отправка лога ИИ (Premium)
+                            CrashDiagnosisCard(
+                                app = app,
+                                nav = nav,
+                                log = app.launchLog.value + "\n" + st.details,
+                                instanceId = inst.id,
+                                ramMb = inst.memoryMb,
+                            )
                         }
                         error?.let { e ->
                             Spacer(Modifier.height(6.dp))

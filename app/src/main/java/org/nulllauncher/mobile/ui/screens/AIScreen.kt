@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
@@ -113,7 +114,18 @@ fun AIScreen(app: NullApp, nav: NavController) {
                 }
             } else {
                 item {
-                    Text("Что умеет", fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.padding(top = 4.dp))
+                    Button(
+                        onClick = { nav.navigate("ai_chat") },
+                        modifier = Modifier.fillMaxWidth().height(46.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Acc),
+                    ) {
+                        Icon(Icons.Filled.AutoAwesome, null, tint = Color.White, modifier = Modifier.size(17.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Открыть чат с ИИ", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text("Что умеет", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 }
 
                 val features = listOf(

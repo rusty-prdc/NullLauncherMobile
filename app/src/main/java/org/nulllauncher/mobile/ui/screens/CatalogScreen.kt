@@ -135,6 +135,15 @@ fun CatalogScreen(app: NullApp, nav: NavController, initialInstanceId: String? =
         if (hits.isNotEmpty()) doSearch()
     }
 
+    // запрос из кнопки-действия ИИ/анализатора: «установить такой мод»
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        app.pendingCatalogQuery.value?.let { q ->
+            app.pendingCatalogQuery.value = null
+            query = q
+            doSearch()
+        }
+    }
+
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("Каталог", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))

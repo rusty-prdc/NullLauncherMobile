@@ -57,6 +57,15 @@ class NullApp : Application() {
     /** Последняя ошибка для показа на главном экране */
     val lastError = MutableStateFlow<String?>(null)
 
+    /** Контекст для ИИ-чата (лой/ошибка) — подхватывается при открытии чата */
+    val aiContext = MutableStateFlow<String?>(null)
+
+    /** Сообщения ИИ-чата (живут между экранами) */
+    val aiMessages = MutableStateFlow<List<org.nulllauncher.mobile.data.ai.AiChatMessage>>(emptyList())
+
+    /** Запрос каталога из кнопки-действия ИИ/анализатора */
+    val pendingCatalogQuery = MutableStateFlow<String?>(null)
+
     /** Журнал загрузок (вкладка «Загрузки») */
     val downloads = MutableStateFlow<List<DownloadRecord>>(emptyList())
 
