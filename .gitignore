@@ -9,3 +9,7 @@ local.properties
 captures/
 .externalNativeBuild/
 .cxx/
+
+# signing — never commit
+release.keystore
+keystore.properties

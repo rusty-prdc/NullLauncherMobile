@@ -5,6 +5,8 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+import java.util.Properties
+
 android {
     namespace = "org.nulllauncher.mobile"
     compileSdk = 35
@@ -17,9 +19,26 @@ android {
         versionName = "0.1.0"
     }
 
+    signingConfigs {
+        // release-подпись читается из keystore.properties (не попадает в git)
+        val ksProps = rootProject.file("keystore.properties").takeIf { it.exists() }?.let { p ->
+            Properties().apply { p.inputStream().use { load(it) } }
+        }
+        if (ksProps != null) {
+            create("release") {
+                storeFile = rootProject.file(ksProps.getProperty("storeFile", "release.keystore"))
+                storePassword = ksProps.getProperty("storePassword")
+                keyAlias = ksProps.getProperty("keyAlias", "nulllauncher")
+                keyPassword = ksProps.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("release")
+                ?: signingConfigs.getByName("debug")
         }
     }
 
