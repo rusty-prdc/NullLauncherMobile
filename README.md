@@ -3,16 +3,74 @@
 **Minecraft Java на Android. Твой Minecraft. Твои правила. Твой nullLauncher.**
 
 nullLauncher Mobile — Android-лаунчер для запуска Minecraft Java Edition на смартфонах: менеджер версий,
-загрузчики модов (Fabric, Forge, NeoForge), моды и модпаки, настройка памяти и управление мирами
-в одном приложении. Проект развивается вместе с XPRODC.
+загрузчики модов (Fabric), моды из каталога Modrinth, независимые сборки, настройка памяти и аккаунты
+Microsoft в одном приложении. Проект развивается вместе с XPRODC.
 
 > Сайт проекта лежит в [`docs/`](docs/) — включается в GitHub Pages (Settings → Pages → Branch `main` → `/docs`).
+> Макеты экранов: [`docs/mockups.html`](docs/mockups.html).
 
-## Ссылки
+## Структура
 
-- [Репозиторий](https://github.com/rusty-prdc/NullLauncherMobile)
-- [Релизы](https://github.com/rusty-prdc/NullLauncherMobile/releases)
-- [Лаунчер для ПК](https://github.com/rusty-prdc/NullLauncher)
+- `app/` — Android-приложение (Kotlin 2.0, Jetpack Compose, Material 3)
+  - `core/` — сеть (OkHttp + повторы + sha1-проверка), хранилище, ошибки
+  - `data/versions/` — официальный манифест Mojang, установка client.jar/библиотек/ассетов
+  - `data/loaders/` — Fabric (meta.fabricmc.net), базовая поддержка Forge (maven)
+  - `data/instances/` — сборки: независимые `.minecraft`, копия/удаление с подтверждением
+  - `data/modrinth/` — каталог Modrinth: поиск, фильтры, установка модов
+  - `data/accounts/` — вход через Microsoft (device-code, без паролей)
+  - `data/settings/` — DataStore: память (ограничена безопасным максимумом), графика, сенсорное управление
+  - `data/launch/` — сборка команды запуска (JVM-аргументы, classpath, natives) и логи
+  - `ui/` — экраны Compose: Главная, Версии, Сборки, Каталог, Профиль
+- `docs/` — сайт + макеты
+
+## Сборка
+
+Требования: JDK 17+, Android SDK (platform 35, build-tools 35).
+
+```powershell
+$env:JAVA_HOME = "путь к JDK"
+.\gradlew.bat assembleDebug
+# APK: app\build\outputs\apk\debug\app-debug.apk
+```
+
+Release-сборка: `.\gradlew.bat assembleRelease` (нужен keystore в `signingConfigs`).
+
+## Установка на телефон
+
+1. Скопируй `app-debug.apk` на устройство.
+2. Разреши установку из неизвестных источников.
+3. Установи APK и открой nullLauncher Mobile.
+
+## Запуск игры
+
+Полноценный запуск Minecraft Java на Android требует **совместимого Java-окружения с графическим мостом**
+(OpenGL-трансляция), например сборки JRE для Android. Лаунчер формирует полную команду запуска
+(память, natives, classpath, аргументы из json версии) и использует путь к Java из
+Настройки → Java Runtime (или авто-поиск в `runtimes/`). Без такого окружения кнопка «Играть»
+честно сообщает, чего не хватает — без фейков.
+
+## Реализовано
+
+- Тёмная тема (чёрный/графит + фиолетово-синие акценты), splash-экран, нижняя навигация
+- Менеджер версий из официального манифеста Mojang: релизы/снапшоты, установка с прогрессом,
+  sha1-проверкой, повторами и отменой
+- Fabric: установка загрузчика через meta.fabricmc.net, наследование vanilla-файлов
+- Сборки: создание, переименование, копия (mods/config/resourcepacks), удаление с подтверждением,
+  память на сборку, отдельный `.minecraft` у каждой
+- Каталог Modrinth: поиск, установка модов в сборку, включение/выключение (.jar.disabled), удаление
+- Аккаунты Microsoft: официальный device-code flow (XBL → XSTS → Minecraft Services), обновление
+  и выход из аккаунта
+- Настройки: память с ограничением «макс. безопасный», полный экран, сенсорное управление,
+  разрешение рендера, свободное место
+- Запуск: сборка JVM-команды с учётом правил ОС, аргументов игры и natives; логи в файл
+
+## Пока не реализовано
+
+- Нативный графический мост (виртуализация OpenGL) и Java-окружение внутри APK — интеграция
+  Android-совместимой JRE в разработке; сенсорный оверлей активируется после запуска игры
+- Forge/NeoForge/Quilt: список версий подтягивается, полная установка — в разработке
+- Управление мирами (импорт/экспорт/бэкапы), ресурс-паки, обновление модов — следующий этап
+- Проверка на реальных устройствах: запуск игры требует устройства с поддержкой Vulkan/OpenGL ES
 
 ## Дисклеймер
 
