@@ -70,6 +70,23 @@ Java_org_nulllauncher_mobile_data_launch_NativeBridge_launch(
         LOGE("chdir failed: %s", gameDir);
     }
 
+    /* GL4ES: трансляция OpenGL -> GLES. Подгружается ДО JVM с RTLD_GLOBAL,
+       чтобы символы libGL были видны нативникам LWJGL при dlopen. */
+    if (nativesDir && *nativesDir) {
+        char gl4es[4096];
+        snprintf(gl4es, sizeof(gl4es), "%s/libgl4es.so", nativesDir);
+        void *gl = dlopen(gl4es, RTLD_NOW | RTLD_GLOBAL);
+        if (gl) {
+            LOGI("gl4es preloaded: %s", gl4es);
+        } else {
+            LOGE("gl4es not loaded (%s) - GLFW will fail", dlerror());
+        }
+        /* среда трансляции: форсируем GLES-путь */
+        setenv("LIBGL_ALWAYS_INDIRECT", "0", 0);
+        setenv("LIBGL_NOERROR", "1", 0);
+        setenv("MESA_GL_VERSION_OVERRIDE", "2.1", 0);
+    }
+
     void *handle = dlopen(libjvm, RTLD_NOW | RTLD_GLOBAL);
     if (!handle) {
         LOGE("dlopen libjvm failed: %s", dlerror());

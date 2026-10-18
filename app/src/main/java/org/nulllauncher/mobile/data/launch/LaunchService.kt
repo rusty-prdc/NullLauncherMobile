@@ -13,6 +13,7 @@ import org.nulllauncher.mobile.core.Storage
 import org.nulllauncher.mobile.core.TarXz
 import org.nulllauncher.mobile.data.accounts.Account
 import org.nulllauncher.mobile.data.instances.Instance
+import org.nulllauncher.mobile.data.runtime.GraphicsRuntime
 import org.nulllauncher.mobile.data.runtime.JreInstaller
 import org.nulllauncher.mobile.data.versions.VersionJson
 import org.nulllauncher.mobile.data.versions.VersionManager
@@ -88,6 +89,14 @@ class LaunchService(private val ctx: Context) {
             _state.value = LaunchState.Preparing("Сборка аргументов")
             val requiredJava = VersionManager.requiredJavaMajor(vj)
             val javaExe = resolveOrInstallJava(javaPath, requiredJava, onLog)
+
+            // графика Stage B: GL4ES + LWJGL arm64 в natives этой версии
+            val gfx = GraphicsRuntime.installed(ctx, versionId)
+            if (!gfx) {
+                onLog?.invoke("Установка графического стека (GL4ES + LWJGL)…")
+                val placed = GraphicsRuntime.install(ctx, versionId)
+                if (placed.isNotEmpty()) onLog?.invoke("Графика: ${placed.size} библиотек")
+            }
 
             val classpath = buildClasspath(vj, baseVj)
             val nativesDir = Storage.natives(ctx, versionId)
@@ -277,6 +286,8 @@ class LaunchService(private val ctx: Context) {
 
     private fun buildClasspath(vararg vjs: VersionJson?): String {
         val entries = LinkedHashSet<String>()
+        // патченный GLFW первым — переопределяет стандартные классы lwjgl-glfw
+        org.nulllauncher.mobile.data.runtime.GraphicsRuntime.glfwPatchedJar(ctx)?.let { entries += it.absolutePath }
         val list = vjs.filterNotNull()
         for (vj in list) {
             VersionManager(ctx).allLibraries(vj).forEach { lib ->
