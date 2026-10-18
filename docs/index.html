@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>nullLauncher Mobile — Minecraft Java на Android</title>
-<meta name="description" content="nullLauncher Mobile — Android-лаунчер для запуска Minecraft Java Edition на смартфонах: менеджер версий, Fabric и Forge, моды и модпаки, настройка памяти и управление мирами.">
+<meta name="description" content="nullLauncher Mobile — Android-лаунчер для запуска Minecraft Java Edition на смартфонах: менеджер версий, Fabric и Forge, моды и модпаки, мастер создания сборок, миры и ресурс-паки, ИИ-помощник и подписка Premium.">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#090A0D" media="(prefers-color-scheme: dark)">
 <meta property="og:type" content="website">
@@ -28,7 +28,7 @@
 {"@context":"https://schema.org","@type":"SoftwareApplication","name":"nullLauncher Mobile","description":"Android-лаунчер для запуска Minecraft Java Edition: менеджер версий, Fabric/Forge/NeoForge, моды и модпаки, настройки памяти, управление мирами.","applicationCategory":"GameApplication","applicationSubCategory":"Лаунчер Minecraft для Android","operatingSystem":"Android","inLanguage":"ru","url":"https://github.com/rusty-prdc/NullLauncherMobile","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
 </script>
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Что такое nullLauncher Mobile?","acceptedAnswer":{"@type":"Answer","text":"nullLauncher Mobile — Android-лаунчер для запуска Minecraft Java Edition на смартфонах с помощью совместимого игрового окружения. Он объединяет установку версий, управление сборками, модами и настройками в одном приложении."}},{"@type":"Question","name":"Нужна ли лицензия Minecraft Java Edition?","acceptedAnswer":{"@type":"Answer","text":"Да, для игры может потребоваться лицензия Minecraft Java Edition. nullLauncher Mobile — сторонний проект, не связанный с Mojang Studios или Microsoft."}},{"@type":"Question","name":"Какие моды и загрузчики поддерживаются?","acceptedAnswer":{"@type":"Answer","text":"Лаунчер устанавливает поддерживаемые загрузчики модов: Fabric, Forge, NeoForge и другие. Находи моды и собирай собственные сборки; интеграция с каталогом Modrinth планируется."}},{"@type":"Question","name":"Какие функции ещё не реализованы?","acceptedAnswer":{"@type":"Answer","text":"Описанные на странице возможности, которые ещё не реализованы, не следует считать доступными в текущей версии. Следи за обновлениями в репозитории проекта на GitHub."}},{"@type":"Question","name":"Бесплатен ли nullLauncher Mobile?","acceptedAnswer":{"@type":"Answer","text":"Да. Проект развивается вместе с XPRODC и распространяется бесплатно."}}]}
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Что такое nullLauncher Mobile?","acceptedAnswer":{"@type":"Answer","text":"nullLauncher Mobile — Android-лаунчер для запуска Minecraft Java Edition на смартфонах с помощью совместимого игрового окружения. Он объединяет установку версий, управление сборками, модами и настройками в одном приложении."}},{"@type":"Question","name":"Нужна ли лицензия Minecraft Java Edition?","acceptedAnswer":{"@type":"Answer","text":"Да, для игры может потребоваться лицензия Minecraft Java Edition. nullLauncher Mobile — сторонний проект, не связанный с Mojang Studios или Microsoft."}},{"@type":"Question","name":"Какие моды и загрузчики поддерживаются?","acceptedAnswer":{"@type":"Answer","text":"Лаунчер устанавливает поддерживаемые загрузчики модов: Fabric, Forge, NeoForge и другие. Находи моды и собирай собственные сборки; интеграция с каталогом Modrinth планируется."}},{"@type":"Question","name":"Какие функции ещё не реализованы?","acceptedAnswer":{"@type":"Answer","text":"Описанные на странице возможности, которые ещё не реализованы, не следует считать доступными в текущей версии. Следи за обновлениями в репозитории проекта на GitHub."}},{"@type":"Question","name":"Бесплатен ли nullLauncher Mobile?","acceptedAnswer":{"@type":"Answer","text":"Базовый лаунчер бесплатен (до 3 сборок). Опциональная подписка Premium снимает лимиты и открывает ИИ-помощника."}}]}
 </script>
 </head>
 <body>
@@ -163,7 +163,25 @@
       <article class="b-card reveal">
         <div class="b-ic">🎨</div>
         <h3>Современный интерфейс</h3>
-        <p>Тёмное оформление, фиолетовые акценты и удобная навигация, разработанные специально для мобильных устройств.</p>
+        <p>Светлое оформление с мятно-зелёным акцентом, карточки и удобная нижняя навигация — сделано специально для мобильных устройств.</p>
+      </article>
+
+      <article class="b-card reveal">
+        <div class="b-ic">🧭</div>
+        <h3>Мастер создания сборок</h3>
+        <p>Три шага: память, загрузчик модов (с логотипами) и версия с названием. У каждой сборки своя папка — моды, миры и настройки не смешиваются.</p>
+      </article>
+
+      <article class="b-card reveal">
+        <div class="b-ic">🤖</div>
+        <h3>ИИ-помощник</h3>
+        <p>Анализ логов, подбор модов под сборку и подсказки по оптимизации FPS. Функция входит в подписку Premium.</p>
+      </article>
+
+      <article class="b-card reveal">
+        <div class="b-ic">⭐</div>
+        <h3>Подписка Premium</h3>
+        <p>Бесплатно — до 3 сборок. С Premium — безлимитные сборки, ИИ-помощник и расширенные возможности. Оформляется прямо в приложении.</p>
       </article>
     </div>
   </div>
@@ -227,8 +245,10 @@
       <li><h3>Менеджер версий и загрузчики</h3><p>Выбирай версии Minecraft и устанавливай поддерживаемые загрузчики модов: Fabric, Forge, NeoForge и другие.</p></li>
       <li><h3>Моды и модпаки</h3><p>Находи моды, собирай собственные сборки и управляй установленными дополнениями. Интеграция с каталогом Modrinth планируется.</p></li>
       <li><h3>Настройки производительности</h3><p>Выделение оперативной памяти, параметры игры и другие доступные настройки — под твоё устройство.</p></li>
-      <li><h3>Управление мирами</h3><p>Храни миры, создавай резервные копии и переноси сохранения между поддерживаемыми сборками.</p></li>
-      <li><h3>Современный интерфейс</h3><p>Тёмное оформление, фиолетовые акценты и навигация, сделанная под мобильные устройства.</p></li>
+      <li><h3>Управление мирами и ресурс-паками</h3><p>Миры и ресурс-паки каждой сборки видны прямо в её карточке: размер, дата и удаление в один тап.</p></li>
+      <li><h3>Современный интерфейс</h3><p>Светлое оформление с мятно-зелёным акцентом и навигация, сделанная под мобильные устройства.</p></li>
+      <li><h3>Мастер создания сборок</h3><p>Пошаговый мастер: память, загрузчик модов и версия — сборка готова за три шага, Java устанавливается автоматически.</p></li>
+      <li><h3>ИИ-помощник и Premium</h3><p>ИИ разбирает логи и подбирает моды — доступно по подписке Premium; бесплатная версия включает до 3 сборок.</p></li>
     </ul>
   </section>
 
@@ -250,7 +270,7 @@
       </details>
       <details>
         <summary>Бесплатен ли nullLauncher Mobile?</summary>
-        <div><p>Да. Проект развивается вместе с XPRODC, распространяется бесплатно и имеет открытый исходный код на GitHub.</p></div>
+        <div><p>Базовый лаунчер бесплатен: до 3 сборок, версии, моды и миры. Опциональная подписка Premium снимает лимиты и открывает ИИ-помощника. Проект развивается вместе с XPRODC и имеет открытый исходный код на GitHub.</p></div>
       </details>
       <details>
         <summary>Все ли функции уже работают?</summary>
