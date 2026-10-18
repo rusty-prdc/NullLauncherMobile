@@ -36,6 +36,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.delay
+import org.nulllauncher.mobile.ui.screens.BottomBar
 import org.nulllauncher.mobile.ui.screens.CatalogScreen
 import org.nulllauncher.mobile.ui.screens.HomeScreen
 import org.nulllauncher.mobile.ui.screens.InstancesScreen

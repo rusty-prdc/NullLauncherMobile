@@ -49,12 +49,16 @@ class SettingsRepository(private val ctx: Context) {
     val showSnapshots: Flow<Boolean> = ctx.ds.data.map { it[K.SNAPSHOT_FILTER] ?: false }
 
     suspend fun setMemoryMb(v: Int) = ctx.ds.edit { it[K.MEMORY_MB] = v.coerceIn(512, maxMemoryMb()) }
-    suspend fun setJavaPath(v: String?) = ctx.ds.edit { it[K.JAVA_PATH] = v }
+    suspend fun setJavaPath(v: String?) = ctx.ds.edit { p ->
+        if (v != null) p[K.JAVA_PATH] = v else p.remove(K.JAVA_PATH)
+    }
     suspend fun setRenderScale(v: Int) = ctx.ds.edit { it[K.RENDER_SCALE] = v.coerceIn(50, 200) }
     suspend fun setFullscreen(v: Boolean) = ctx.ds.edit { it[K.FULLSCREEN] = v }
     suspend fun setTouchControls(v: Boolean) = ctx.ds.edit { it[K.TOUCHControls] = v }
     suspend fun setGuiScale(v: Int) = ctx.ds.edit { it[K.GUI_SCALE] = v.coerceIn(0, 4) }
-    suspend fun setLastInstance(v: String?) = ctx.ds.edit { it[K.LAST_INSTANCE] = v }
+    suspend fun setLastInstance(v: String?) = ctx.ds.edit { p ->
+        if (v != null) p[K.LAST_INSTANCE] = v else p.remove(K.LAST_INSTANCE)
+    }
     suspend fun setShowSnapshots(v: Boolean) = ctx.ds.edit { it[K.SNAPSHOT_FILTER] = v }
 
     /** Максимум в МБ, который разрешено выделить (безопасный предел) */

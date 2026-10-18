@@ -88,7 +88,7 @@ fun VersionsScreen(app: NullApp, nav: NavController) {
             modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)),
             singleLine = true,
             colors = TextFieldDefaults.colors(
-                focusedContainerColor = Card, unfocusedContainerColor = Card,
+                focusedContainerColor = Color(0xFF14141C), unfocusedContainerColor = Color(0xFF14141C),
                 focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent,
             ),
         )
@@ -149,7 +149,7 @@ fun VersionsScreen(app: NullApp, nav: NavController) {
                                             app.installProgress.value =
                                                 org.nulllauncher.mobile.InstallProgress(stage, done, total)
                                         }
-                                        versions = app.versions.manifest()
+                                        versions = app.versions.manifest().versions
                                     } catch (e: Exception) {
                                         app.lastError.value = e.message ?: "Ошибка установки"
                                     } finally {

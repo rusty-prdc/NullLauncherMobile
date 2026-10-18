@@ -36,7 +36,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import io.coil.compose.AsyncImage
 import kotlinx.coroutines.launch
 import org.nulllauncher.mobile.InstallProgress
 import org.nulllauncher.mobile.NullApp
@@ -97,7 +96,7 @@ fun CatalogScreen(app: NullApp, nav: NavController) {
             modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)),
             singleLine = true,
             colors = TextFieldDefaults.colors(
-                focusedContainerColor = Card, unfocusedContainerColor = Card,
+                focusedContainerColor = Color(0xFF14141C), unfocusedContainerColor = Color(0xFF14141C),
                 focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent,
             ),
         )
@@ -121,10 +120,10 @@ fun CatalogScreen(app: NullApp, nav: NavController) {
                 Card(shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
                     Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         if (hit.iconUrl != null) {
-                            AsyncImage(
-                                model = hit.iconUrl,
+                            RemoteImage(
+                                url = hit.iconUrl,
                                 contentDescription = null,
-                                modifier = Modifier.size(46.dp).clip(RoundedCornerShape(13.dp)).background(Card2),
+                                modifier = Modifier.size(46.dp).clip(RoundedCornerShape(13.dp)),
                             )
                         } else {
                             Box(

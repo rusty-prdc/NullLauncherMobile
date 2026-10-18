@@ -1,6 +1,7 @@
 package org.nulllauncher.mobile.data.accounts
 
 import android.content.Context
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
@@ -171,23 +172,25 @@ class AccountService(private val ctx: Context) {
         return json.substring(s, e)
     }
 
-    private suspend fun postForm(url: String, fields: Map<String, String>): String {
-        val form = fields.entries.joinToString("&") {
-            "${java.net.URLEncoder.encode(it.key, "UTF-8")}=${java.net.URLEncoder.encode(it.value, "UTF-8")}"
-        }.toRequestBody("application/x-www-form-urlencoded".toMediaType())
-        val req = okhttp3.Request.Builder().url(url).post(form)
-            .header("User-Agent", "nullLauncher-Mobile/0.1").build()
-        return Net.http.newCall(req).execute().use { r ->
-            r.body?.string() ?: throw LauncherException("Пустой ответ", url)
+    private suspend fun postForm(url: String, fields: Map<String, String>): String =
+        withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val form = fields.entries.joinToString("&") {
+                "${java.net.URLEncoder.encode(it.key, "UTF-8")}=${java.net.URLEncoder.encode(it.value, "UTF-8")}"
+            }.toRequestBody("application/x-www-form-urlencoded".toMediaType())
+            val req = okhttp3.Request.Builder().url(url).post(form)
+                .header("User-Agent", "nullLauncher-Mobile/0.1").build()
+            Net.http.newCall(req).execute().use { r ->
+                r.body?.string() ?: throw LauncherException("Пустой ответ", url)
+            }
         }
-    }
 
-    private suspend fun postJson(url: String, json: String): String {
-        val req = okhttp3.Request.Builder().url(url).post(json.toRequestBody("application/json".toMediaType()))
-            .header("User-Agent", "nullLauncher-Mobile/0.1").build()
-        return Net.http.newCall(req).execute().use { r ->
-            if (!r.isSuccessful) throw LauncherException("Ошибка авторизации (HTTP ${r.code})", url)
-            r.body?.string() ?: throw LauncherException("Пустой ответ", url)
+    private suspend fun postJson(url: String, json: String): String =
+        withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val req = okhttp3.Request.Builder().url(url).post(json.toRequestBody("application/json".toMediaType()))
+                .header("User-Agent", "nullLauncher-Mobile/0.1").build()
+            Net.http.newCall(req).execute().use { r ->
+                if (!r.isSuccessful) throw LauncherException("Ошибка авторизации (HTTP ${r.code})", url)
+                r.body?.string() ?: throw LauncherException("Пустой ответ", url)
+            }
         }
-    }
 }

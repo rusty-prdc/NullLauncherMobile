@@ -91,7 +91,7 @@ class LaunchService(private val ctx: Context) {
                 )
 
             val classpath = buildClasspath(vj, baseVj)
-            val nativesDir = File(Storage.natives(ctx, versionId))
+            val nativesDir = Storage.natives(ctx, versionId)
 
             val args = mutableListOf<String>()
             args += javaExe

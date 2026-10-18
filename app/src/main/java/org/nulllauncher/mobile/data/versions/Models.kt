@@ -7,6 +7,8 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonDecoder
@@ -104,7 +106,7 @@ data class ArgumentEl(
 object ArgumentElSerializer : KSerializer<ArgumentEl> {
     override val descriptor: SerialDescriptor = JsonElement.serializer().descriptor
 
-    override fun deserialize(decoder: kotlinx.serialization.Decoder): ArgumentEl {
+    override fun deserialize(decoder: Decoder): ArgumentEl {
         val input = decoder as? JsonDecoder ?: throw SerializationException("Ожидался JsonDecoder")
         return when (val el = input.decodeJsonElement()) {
             is JsonPrimitive -> ArgumentEl(value = el)
@@ -120,7 +122,7 @@ object ArgumentElSerializer : KSerializer<ArgumentEl> {
         }
     }
 
-    override fun serialize(encoder: kotlinx.serialization.Encoder, value: ArgumentEl) {
+    override fun serialize(encoder: Encoder, value: ArgumentEl) {
         val output = encoder as? JsonEncoder ?: throw SerializationException("Ожидался JsonEncoder")
         if (value.rules.isNullOrEmpty()) {
             output.encodeJsonElement(value.value ?: JsonNull)
