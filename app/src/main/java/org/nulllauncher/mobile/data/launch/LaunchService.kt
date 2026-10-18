@@ -132,6 +132,48 @@ class LaunchService(private val ctx: Context) {
             Log.i(TAG, cmdLine)
 
             _state.value = LaunchState.Preparing("Запуск JVM")
+
+            // ---------- Stage B: запуск ВНУТРИ процесса через JNI-мост ----------
+            val libjvm = findLibJvm()
+            if (libjvm != null && NativeBridge.ensureLoaded()) {
+                val mainIdx = args.indexOf(mainClass)
+                val gameArgs = if (mainIdx >= 0 && mainIdx + 1 < args.size) args.subList(mainIdx + 1, args.size).toTypedArray()
+                    else emptyArray()
+                val logFile = File(Storage.logs(ctx), "game-${System.currentTimeMillis()}.log")
+                logFile.parentFile?.mkdirs()
+                logFile.writeText("")
+
+                onLog?.invoke("Stage B: JVM внутри процесса (${File(libjvm).parent})")
+                _state.value = LaunchState.Running(0)
+
+                // блокирующий запуск — в отдельном потоке, лог читаем хвостом
+                val result = withContext(Dispatchers.IO) {
+                    val code = NativeBridge.launch(
+                        libjvm = libjvm,
+                        classpath = classpath,
+                        mainClass = mainClass,
+                        args = gameArgs,
+                        gameDir = gameDir.absolutePath,
+                        nativesDir = nativesDir.absolutePath,
+                        logFile = logFile.absolutePath,
+                        memoryMb = inst.memoryMb,
+                    )
+                    code
+                }
+
+                // отдать хвост лога в журнал приложения
+                try {
+                    logFile.readText().takeLast(6000).lines().forEach { l ->
+                        if (l.isNotBlank()) onLog?.invoke(l)
+                    }
+                } catch (_: Exception) {
+                }
+
+                _state.value = if (result == NativeBridge.OK) LaunchState.Stopped
+                else LaunchState.Failed("Игра завершилась с ошибкой", NativeBridge.explain(result))
+                return@withContext
+            }
+
             val pb = ProcessBuilder(args)
                 .directory(gameDir)
                 .redirectErrorStream(true)
@@ -197,6 +239,25 @@ class LaunchService(private val ctx: Context) {
         app.settings.setJavaPath(path) // запоминаем, чтобы больше не спрашивать
         onLog?.invoke("Java $requiredMajor установлена: $path")
         return path
+    }
+
+    /** Поиск libjvm.so внутри установленных runtimes/ (Stage B) */
+    private fun findLibJvm(): String? {
+        fun walk(dir: File, depth: Int): String? {
+            if (depth > 6) return null
+            dir.listFiles()?.forEach { f ->
+                if (f.isDirectory) {
+                    walk(f, depth + 1)?.let { return it }
+                } else if (f.name == "libjvm.so") {
+                    return f.absolutePath
+                }
+            }
+            return null
+        }
+        Storage.runtimes(ctx).listFiles()?.forEach { root ->
+            walk(root, 0)?.let { return it }
+        }
+        return null
     }
 
     /** Путь к java: из настроек, либо авто-поиск в runtimes/ */
