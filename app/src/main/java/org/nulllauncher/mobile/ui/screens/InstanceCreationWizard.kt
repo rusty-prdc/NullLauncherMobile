@@ -185,6 +185,15 @@ fun InstanceCreationWizard(app: NullApp, nav: NavController, onFinish: (Instance
                 )
                 app.instances.update(created)
 
+                // 1) клиент игры — без него «Играть» скажет «версия не установлена»
+                if (!app.versions.isInstalled(created.versionId)) {
+                    app.versions.install(created.versionId) { s, d, t ->
+                        app.installProgress.value = InstallProgress(s, d, t)
+                    }
+                    app.logDownload("Minecraft ${created.versionId}", created.name, 0, true)
+                }
+
+                // 2) загрузчик поверх клиента
                 if (LoaderService.isSupported(loader)) {
                     try {
                         val lv = LoaderService.latestLoader(loader)

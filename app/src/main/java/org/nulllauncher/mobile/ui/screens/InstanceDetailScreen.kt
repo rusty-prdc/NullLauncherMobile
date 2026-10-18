@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
+import org.nulllauncher.mobile.InstallProgress
 import org.nulllauncher.mobile.NullApp
 import org.nulllauncher.mobile.core.Storage
 import org.nulllauncher.mobile.data.instances.Instance
@@ -69,6 +70,7 @@ import org.nulllauncher.mobile.ui.theme.Card2
 import org.nulllauncher.mobile.ui.theme.Err
 import org.nulllauncher.mobile.ui.theme.Mute
 import org.nulllauncher.mobile.ui.theme.Ok
+import org.nulllauncher.mobile.ui.theme.Warn
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -123,6 +125,38 @@ fun InstanceDetailScreen(app: NullApp, nav: NavController, instanceId: String) {
     }
 
     val busy = launcherState is LaunchState.Running || launcherState is LaunchState.Preparing
+    val launchError = app.launcher.checkInstance(inst)
+    var installingGame by remember { mutableStateOf(false) }
+
+    fun installGame() {
+        if (installingGame) return
+        scope.launch {
+            installingGame = true
+            try {
+                if (!app.versions.isInstalled(inst.versionId)) {
+                    app.versions.install(inst.versionId) { s, d, t ->
+                        app.installProgress.value = InstallProgress(s, d, t)
+                    }
+                }
+                if (inst.loader != "vanilla" &&
+                    app.versions.installedVersionId(inst.versionId, inst.loader) == null &&
+                    org.nulllauncher.mobile.data.loaders.LoaderService.isSupported(inst.loader)
+                ) {
+                    val lv = org.nulllauncher.mobile.data.loaders.LoaderService.latestLoader(inst.loader)
+                    org.nulllauncher.mobile.data.loaders.LoaderService.installLoader(app, inst.loader, inst.versionId, lv.version) { s, d, t ->
+                        app.installProgress.value = InstallProgress(s, d, t)
+                    }
+                }
+                app.installProgress.value = null
+                app.logDownload("Minecraft ${inst.versionId}", inst.name, 0, true)
+            } catch (e: Exception) {
+                app.installProgress.value = null
+                app.lastError.value = e.message ?: "Ошибка установки"
+            }
+            installingGame = false
+            refresh()
+        }
+    }
 
     fun launch() {
         val err = app.launcher.checkInstance(inst)
@@ -191,6 +225,22 @@ fun InstanceDetailScreen(app: NullApp, nav: NavController, instanceId: String) {
                             Text("Управление — раскладка кнопок (бесплатно)", fontSize = 12.5.sp, color = Acc2)
                         }
                         Spacer(Modifier.height(10.dp))
+                        // версия не установлена — ставим прямо отсюда, без заглушек
+                        if (launchError != null && !installingGame) {
+                            Button(
+                                onClick = { installGame() },
+                                modifier = Modifier.fillMaxWidth().height(50.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Acc),
+                            ) {
+                                Text(
+                                    "Установить Minecraft ${inst.versionId}",
+                                    fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White,
+                                )
+                            }
+                            Spacer(Modifier.height(4.dp))
+                            Text(launchError, fontSize = 11.sp, color = Warn)
+                        }
                         Button(
                             onClick = { launch() },
                             modifier = Modifier.fillMaxWidth().height(50.dp),
