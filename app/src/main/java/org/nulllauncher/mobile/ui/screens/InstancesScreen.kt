@@ -20,12 +20,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -46,13 +48,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
+import org.nulllauncher.mobile.InstallProgress
 import org.nulllauncher.mobile.NullApp
+import org.nulllauncher.mobile.core.LauncherException
+import org.nulllauncher.mobile.core.Storage
 import org.nulllauncher.mobile.data.instances.Instance
+import org.nulllauncher.mobile.data.loaders.LoaderService
+import org.nulllauncher.mobile.data.modpacks.ModpackProgress
+import org.nulllauncher.mobile.data.modpacks.ModpackService
 import org.nulllauncher.mobile.ui.theme.Acc
 import org.nulllauncher.mobile.ui.theme.Acc2
 import org.nulllauncher.mobile.ui.theme.AccSoft
 import org.nulllauncher.mobile.ui.theme.Card2
 import org.nulllauncher.mobile.ui.theme.Err
+import org.nulllauncher.mobile.ui.theme.Line
 import org.nulllauncher.mobile.ui.theme.Mute
 
 /**
@@ -64,12 +73,20 @@ fun InstancesScreen(app: NullApp, nav: NavController) {
     var instances by remember { mutableStateOf(app.instances.list()) }
     var editTarget by remember { mutableStateOf<Instance?>(null) }
     var deleteTarget by remember { mutableStateOf<Instance?>(null) }
+    var showImport by remember { mutableStateOf(false) }
+    var importUrl by remember { mutableStateOf("") }
+    var importStage by remember { mutableStateOf<String?>(null) }
+    var importProgress by remember { mutableStateOf<ModpackProgress?>(null) }
+    var importError by remember { mutableStateOf<String?>(null) }
 
     fun refresh() { instances = app.instances.list() }
 
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("Сборки", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+            IconButton(onClick = { showImport = true }) {
+                Icon(Icons.Filled.FileDownload, "Импорт модпака", tint = Acc2)
+            }
             IconButton(onClick = { nav.navigate("create_instance") }) {
                 Icon(Icons.Filled.Add, "Создать сборку", tint = Color.White)
             }
@@ -157,6 +174,119 @@ fun InstancesScreen(app: NullApp, nav: NavController) {
                 }) { Text("Удалить", color = Err) }
             },
             dismissButton = { TextButton(onClick = { deleteTarget = null }) { Text("Отмена", color = Mute) } },
+        )
+    }
+
+    // ---------- импорт модпака .mrpack (бесплатно для всех) ----------
+    if (showImport) {
+        AlertDialog(
+            onDismissRequest = { if (importStage == null) showImport = false },
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = { Text("Импорт модпака", fontSize = 15.sp) },
+            text = {
+                Column {
+                    Text(
+                        "Вставь ссылку на .mrpack с Modrinth — создам сборку, поставлю моды и загрузчик автоматически.",
+                        fontSize = 12.sp, color = Mute,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = importUrl,
+                        onValueChange = { importUrl = it },
+                        singleLine = true,
+                        enabled = importStage == null,
+                        label = { Text("Ссылка на .mrpack") },
+                        placeholder = { Text("https://cdn.modrinth.com/data/…") },
+                        isError = importError != null,
+                    )
+                    importError?.let {
+                        Spacer(Modifier.height(6.dp))
+                        Text(it, fontSize = 11.sp, color = Err)
+                    }
+                    importStage?.let { st ->
+                        Spacer(Modifier.height(10.dp))
+                        Text(st, fontSize = 12.sp, color = Acc2)
+                        importProgress?.let { p ->
+                            Spacer(Modifier.height(6.dp))
+                            LinearProgressIndicator(
+                                progress = { if (p.total > 0) (p.done.toFloat() / p.total).coerceIn(0f, 1f) else 0f },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            if (p.total > 0) {
+                                Text("${p.done} / ${p.total}", fontSize = 10.5.sp, color = Mute)
+                            }
+                        } ?: LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = importStage == null && importUrl.isNotBlank(),
+                    onClick = {
+                        importError = null
+                        scope.launch {
+                            importStage = "Скачивание модпака…"
+                            importProgress = null
+                            try {
+                                val pack = ModpackService.fetch(importUrl.trim()) { importStage = it }
+                                val idx = pack.index
+                                val loader = ModpackService.loaderOf(idx)
+                                val gameVersion = ModpackService.gameVersionOf(idx)
+                                if (gameVersion.isBlank()) {
+                                    pack.release()
+                                    throw LauncherException("Пак не указывает версию игры", "нет minecraft в dependencies")
+                                }
+                                // лимит FREE — тот же, что в мастере
+                                if (!app.billing.isPremiumActive() && app.instances.list().size >= 3) {
+                                    pack.release()
+                                    throw LauncherException(
+                                        "Лимит сборок",
+                                        "В бесплатной версии не более 3 сборок. Импорт можно делать, освободив место или с Premium.",
+                                    )
+                                }
+                                val inst = app.instances.create(
+                                    name = idx.name.ifBlank { "Модпак $gameVersion" },
+                                    versionId = gameVersion,
+                                    loader = loader,
+                                    loaderVersion = idx.dependencies["fabric-loader"]
+                                        ?: idx.dependencies["quilt-loader"],
+                                )
+                                ModpackService.installFiles(pack, Storage.instanceDir(app, inst.id)) { p ->
+                                    importStage = "Копирование файлов…"
+                                    importProgress = p
+                                }
+                                if (LoaderService.isSupported(loader)) {
+                                    try {
+                                        val lv = LoaderService.latestLoader(loader)
+                                        LoaderService.installLoader(app, loader, gameVersion, lv.version) { s, d, t ->
+                                            app.installProgress.value = InstallProgress(s, d, t)
+                                        }
+                                        app.logDownload("Загрузчик $loader ${lv.version}", inst.name, 0, true)
+                                    } catch (_: Exception) {
+                                    }
+                                    app.installProgress.value = null
+                                }
+                                app.logDownload(inst.name, "Модпак → ${inst.versionId}", 0, true)
+                                showImport = false
+                                importStage = null
+                                importProgress = null
+                                importUrl = ""
+                                refresh()
+                                nav.navigate("instance/${inst.id}")
+                            } catch (e: Exception) {
+                                importStage = null
+                                importProgress = null
+                                importError = e.message ?: "Ошибка импорта"
+                            }
+                        }
+                    },
+                ) { Text(if (importStage == null) "Импорт" else "Идёт импорт…", color = Acc) }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { if (importStage == null) showImport = false },
+                ) { Text("Отмена", color = Mute) }
+            },
         )
     }
 }
