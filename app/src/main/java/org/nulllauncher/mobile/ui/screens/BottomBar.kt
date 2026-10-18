@@ -10,10 +10,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.VideoLibrary
+import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.PlayCircle
@@ -37,6 +39,7 @@ private val tabs = listOf(
     Tab("home", "Главная", Icons.Filled.Home, Icons.Outlined.Home),
     Tab("instances", "Сборки", Icons.Filled.PlayCircle, Icons.Outlined.PlayCircle),
     Tab("catalog", "Каталог", Icons.Filled.VideoLibrary, Icons.Outlined.VideoLibrary),
+    Tab("downloads", "Загрузки", Icons.Filled.Download, Icons.Outlined.Download),
     Tab("profile", "Профиль", Icons.Filled.Person, Icons.Outlined.Person),
 )
 

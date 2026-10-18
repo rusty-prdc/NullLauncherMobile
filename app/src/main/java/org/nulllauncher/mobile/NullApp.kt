@@ -15,6 +15,31 @@ import java.io.File
 
 data class InstallProgress(val stage: String, val done: Long, val total: Long)
 
+/** Запись журнала загрузок */
+data class DownloadRecord(
+    val name: String,
+    val detail: String,
+    val size: Long,
+    val at: Long,
+    val ok: Boolean,
+) {
+    fun toJson(): String = "$at|$ok|$size|$name|$detail"
+
+    companion object {
+        fun fromJson(line: String): DownloadRecord? {
+            val p = line.split("|")
+            if (p.size < 5) return null
+            return DownloadRecord(
+                name = p[3],
+                detail = p[4],
+                size = p[2].toLongOrNull() ?: 0,
+                at = p[0].toLongOrNull() ?: 0,
+                ok = p[1] == "true",
+            )
+        }
+    }
+}
+
 /** Точка сборки всех сервисов (простая без-ди-инфраструктура) */
 class NullApp : Application() {
     val settings by lazy { SettingsRepository(this) }
@@ -31,6 +56,29 @@ class NullApp : Application() {
 
     /** Последняя ошибка для показа на главном экране */
     val lastError = MutableStateFlow<String?>(null)
+
+    /** Журнал загрузок (вкладка «Загрузки») */
+    val downloads = MutableStateFlow<List<DownloadRecord>>(emptyList())
+
+    fun logDownload(name: String, detail: String, size: Long, ok: Boolean) {
+        val rec = DownloadRecord(name, detail, size, System.currentTimeMillis(), ok)
+        downloads.value = listOf(rec) + downloads.value
+        try {
+            val f = java.io.File(filesDir, "downloads.json")
+            val lines = f.takeIf { it.exists() }?.readLines().orEmpty()
+            f.writeText((listOf(rec.toJson()) + lines).take(200).joinToString("\n"))
+        } catch (_: Throwable) {
+        }
+    }
+
+    fun loadDownloads() {
+        try {
+            val f = java.io.File(filesDir, "downloads.json")
+            if (!f.exists()) return
+            downloads.value = f.readLines().mapNotNull { DownloadRecord.fromJson(it) }
+        } catch (_: Throwable) {
+        }
+    }
 
     /** Журнал последнего запуска */
     val launchLog = MutableStateFlow("")

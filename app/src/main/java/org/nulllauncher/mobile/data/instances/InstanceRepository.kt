@@ -22,6 +22,8 @@ data class Instance(
     val memoryMb: Int = 2048,        // память этой сборки
     val javaPath: String? = null,    // отдельный Java Runtime (null = глобальный)
     val coverEmoji: String = "🟩",   // обложка (пока эмодзи-иконка)
+    val description: String = "",    // описание сборки (из мастера)
+    val colorHex: String = "#3ecf8e",// цвет акцента сборки (из мастера)
     val createdAt: Long = System.currentTimeMillis(),
     val lastPlayedAt: Long = 0,
 )

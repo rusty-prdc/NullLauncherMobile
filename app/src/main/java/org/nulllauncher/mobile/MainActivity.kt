@@ -42,6 +42,7 @@ import kotlinx.coroutines.delay
 import org.nulllauncher.mobile.ui.screens.AIScreen
 import org.nulllauncher.mobile.ui.screens.BottomBar
 import org.nulllauncher.mobile.ui.screens.CatalogScreen
+import org.nulllauncher.mobile.ui.screens.DownloadsScreen
 import org.nulllauncher.mobile.ui.screens.HomeScreen
 import org.nulllauncher.mobile.ui.screens.InstanceCreationWizard
 import org.nulllauncher.mobile.ui.screens.InstanceDetailScreen
@@ -135,7 +136,14 @@ private fun MainNav() {
                 composable("home") { HomeScreen(app, nav) }
                 composable("instances") { InstancesScreen(app, nav) }
                 composable("versions") { VersionsScreen(app, nav) }
-                composable("catalog") { CatalogScreen(app, nav) }
+                composable("catalog") { CatalogScreen(app, nav, null) }
+                composable(
+                    "catalog/{instanceId}",
+                    arguments = listOf(navArgument("instanceId") { type = NavType.StringType }),
+                ) { back ->
+                    CatalogScreen(app, nav, back.arguments?.getString("instanceId"))
+                }
+                composable("downloads") { DownloadsScreen(app, nav) }
                 composable("profile") { ProfileScreen(app, nav) }
                 composable("subscription") { SubscriptionScreen(app, nav, app.billing) }
                 composable("ai") { AIScreen(app, nav) }
@@ -158,7 +166,7 @@ private fun MainNav() {
         val route by nav.currentBackStackEntryAsState()
         val currentRoute = route?.destination?.route ?: "home"
         // На детальных экранах нижняя панель скрыта — они закрываются кнопкой «назад»
-        if (currentRoute in setOf("home", "instances", "versions", "catalog", "profile")) {
+        if (currentRoute in setOf("home", "instances", "versions", "catalog", "downloads", "profile")) {
             BottomBar(
                 current = currentRoute,
                 onSelect = { r ->

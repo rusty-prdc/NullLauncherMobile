@@ -1,6 +1,5 @@
 package org.nulllauncher.mobile.ui.screens
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,21 +16,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -39,9 +32,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -52,7 +45,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -60,10 +52,7 @@ import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 import org.nulllauncher.mobile.InstallProgress
 import org.nulllauncher.mobile.NullApp
-import org.nulllauncher.mobile.R
 import org.nulllauncher.mobile.core.LauncherException
-import org.nulllauncher.mobile.core.Storage
-import org.nulllauncher.mobile.data.billing.SubscriptionManager
 import org.nulllauncher.mobile.data.instances.Instance
 import org.nulllauncher.mobile.data.loaders.LoaderService
 import org.nulllauncher.mobile.data.versions.ManifestVersion
@@ -72,7 +61,6 @@ import org.nulllauncher.mobile.ui.theme.Acc2
 import org.nulllauncher.mobile.ui.theme.AccSoft
 import org.nulllauncher.mobile.ui.theme.Card2
 import org.nulllauncher.mobile.ui.theme.Err
-import org.nulllauncher.mobile.ui.theme.ErrSoft
 import org.nulllauncher.mobile.ui.theme.Line
 import org.nulllauncher.mobile.ui.theme.Mute
 import org.nulllauncher.mobile.ui.theme.Ok
@@ -81,54 +69,89 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * Мастер создания сборки — 5 шагов, как в ПК-лаунчере:
+ * 1 Шаблон и название · 2 Версия Minecraft · 3 Загрузчик · 4 Java и память · 5 Готово.
+ * Кнопки «Назад/Далее» закреплены внизу и не уезжают за экран.
+ */
 @Composable
 fun InstanceCreationWizard(app: NullApp, nav: NavController, onFinish: (Instance) -> Unit) {
     val scope = rememberCoroutineScope()
     val billing = app.billing
+    val install by app.installProgress.collectAsState()
 
     var step by remember { mutableIntStateOf(1) }
     val totalSteps = 5
+    val stepTitles = listOf("Шаблон и название", "Версия Minecraft", "Загрузчик", "Java и память", "Готово")
 
     var maxMemoryMb by remember { mutableIntStateOf(4096) }
     var customMemory by remember { mutableStateOf("") }
+    val maxAllowed = remember { app.settings.maxMemoryMb() }
+    val totalRamMb = remember {
+        val am = app.getSystemService(android.content.Context.ACTIVITY_SERVICE) as? android.app.ActivityManager
+        if (am != null) {
+            val info = android.app.ActivityManager.MemoryInfo()
+            am.getMemoryInfo(info)
+            (info.totalMem / (1024 * 1024)).toInt()
+        } else 0
+    }
 
     var loader by remember { mutableStateOf("vanilla") }
 
     var versions by remember { mutableStateOf<List<ManifestVersion>>(emptyList()) }
     var versionQuery by remember { mutableStateOf("") }
     var selectedVersion by remember { mutableStateOf<ManifestVersion?>(null) }
-    var filter by remember { mutableStateOf("release") }
+    var filter by remember { mutableStateOf("release") } // all | release | old
+    var javaReq by remember { mutableStateOf<Int?>(null) }
 
     var template by remember { mutableStateOf("clean") }
     var instanceName by remember { mutableStateOf("") }
+    var instanceDescription by remember { mutableStateOf("") }
     var coverColor by remember { mutableStateOf("#3ecf8e") }
 
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
+    val suggestedName = "${selectedVersion?.id ?: ""} ${loaderLabel(loader)}".trim()
+
+    fun applyTemplate(id: String) {
+        template = id
+        loader = when (id) {
+            "clean" -> "vanilla"
+            "fabric_burst", "shaders" -> "fabric"
+            "forge" -> "forge"
+            "neoforge" -> "neoforge"
+            "quilt" -> "quilt"
+            else -> loader
+        }
+    }
+
     fun canProceedStep(): Boolean = when (step) {
         1 -> true
-        2 -> true
-        3 -> selectedVersion != null
-        4 -> instanceName.isNotBlank()
-        else -> false
+        2 -> selectedVersion != null
+        3 -> LoaderService.isSupported(loader)
+        4 -> maxMemoryMb in app.settings.minMemoryMb()..maxAllowed
+        else -> true
     }
 
     LaunchedEffect(Unit) {
         scope.launch {
             try {
-                val manifest = app.versions.manifest()
-                versions = manifest.versions.filter {
-                    when (filter) {
-                        "release" -> it.type == "release"
-                        "snapshot" -> it.type == "snapshot"
-                        else -> true
-                    }
-                }
-                if (versions.isNotEmpty()) selectedVersion = versions.first()
+                val all = app.versions.manifest().versions
+                versions = all
+                selectedVersion = all.firstOrNull { it.type == "release" } ?: all.firstOrNull()
             } catch (e: Exception) {
                 error = e.message ?: "Не удалось загрузить версии"
             }
+        }
+    }
+
+    LaunchedEffect(selectedVersion?.id) {
+        javaReq = null
+        val id = selectedVersion?.id ?: return@LaunchedEffect
+        try {
+            javaReq = app.versions.versionJson(id).javaVersion?.majorVersion
+        } catch (_: Exception) {
         }
     }
 
@@ -141,11 +164,7 @@ fun InstanceCreationWizard(app: NullApp, nav: NavController, onFinish: (Instance
     }
 
     fun create() {
-        val step1Ok = true
-        val step2Ok = true
-        val step3Ok = selectedVersion != null
-        val step4Ok = instanceName.isNotBlank()
-        if (step != totalSteps || !step1Ok || !step2Ok || !step3Ok || !step4Ok) return
+        if (step != totalSteps || !canProceedStep() || loading) return
         loading = true
         error = null
         scope.launch {
@@ -153,26 +172,34 @@ fun InstanceCreationWizard(app: NullApp, nav: NavController, onFinish: (Instance
                 if (!billing.isPremiumActive() && app.instances.list().size >= 3) {
                     throw LauncherException("Лимит сборок", "В бесплатной версии не более 3 сборок. Оформите Premium.")
                 }
-                val created = app.instances.create(
-                    name = instanceName.trim(),
+                val name = instanceName.trim().ifBlank { suggestedName }
+                var created = app.instances.create(
+                    name = name,
                     versionId = selectedVersion!!.id,
                     loader = loader,
                 )
-                app.instances.update(created.copy(memoryMb = maxMemoryMb))
-                val inst = created
-                if (loader != "vanilla") {
+                created = created.copy(
+                    memoryMb = maxMemoryMb,
+                    description = instanceDescription.trim(),
+                    colorHex = coverColor,
+                )
+                app.instances.update(created)
+
+                if (LoaderService.isSupported(loader)) {
                     try {
                         val lv = LoaderService.latestLoader(loader)
-                        LoaderService.installLoader(app, loader, inst.versionId, lv.version) { s, d, t ->
+                        LoaderService.installLoader(app, loader, created.versionId, lv.version) { s, d, t ->
                             app.installProgress.value = InstallProgress(s, d, t)
                         }
-                    } catch (e: Exception) {
+                        app.logDownload("Загрузчик $loader ${lv.version}", created.name, 0, true)
+                    } catch (_: Exception) {
                     }
                 }
                 app.installProgress.value = null
                 loading = false
-                onFinish(inst)
+                onFinish(created)
             } catch (e: Exception) {
+                app.installProgress.value = null
                 loading = false
                 error = e.message ?: "Ошибка создания сборки"
             }
@@ -194,7 +221,10 @@ fun InstanceCreationWizard(app: NullApp, nav: NavController, onFinish: (Instance
                     fontSize = 11.sp, color = Mute,
                 )
             }
-            Text("Шаг $step из $totalSteps", fontSize = 12.sp, color = Acc2, fontWeight = FontWeight.SemiBold)
+            Text(
+                "Шаг $step из $totalSteps",
+                fontSize = 12.sp, color = Acc2, fontWeight = FontWeight.SemiBold,
+            )
         }
 
         Spacer(Modifier.height(4.dp))
@@ -203,45 +233,83 @@ fun InstanceCreationWizard(app: NullApp, nav: NavController, onFinish: (Instance
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).clip(RoundedCornerShape(6.dp)),
         )
 
-        Spacer(Modifier.height(16.dp))
+        Text(
+            stepTitles[step - 1],
+            fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+        )
 
-        when (step) {
-            1 -> JavaMemoryStep()
-            2 -> LoaderStep(loader = loader, onSelect = { loader = it })
-            3 -> VersionStep(
-                versions = versions,
-                query = versionQuery,
-                onQueryChange = { versionQuery = it },
-                filter = filter,
-                onFilterChange = { filter = it },
-                selected = selectedVersion,
-                onSelect = { selectedVersion = it },
-            )
-            4 -> TemplateStep(
-                template = template,
-                onTemplateChange = { template = it },
-                name = instanceName,
-                onNameChange = { instanceName = it },
-                color = coverColor,
-                onColorChange = { coverColor = it },
-            )
-            else -> FinishStep(
-                app = app,
-                name = instanceName,
-                version = selectedVersion?.id ?: "",
-                loader = loader,
-                memory = maxMemoryMb,
-                onCreate = { create() },
-                loading = loading,
-                error = error,
-            )
+        // контент шага ограничен по высоте — кнопки внизу всегда видны
+        Box(Modifier.weight(1f).fillMaxWidth()) {
+            when (step) {
+                1 -> InstanceCreationWizardStep1Template(
+                    template = template,
+                    onTemplateChange = { applyTemplate(it) },
+                    name = instanceName,
+                    onNameChange = { instanceName = it },
+                    description = instanceDescription,
+                    onDescriptionChange = { instanceDescription = it },
+                    color = coverColor,
+                    onColorChange = { coverColor = it },
+                    suggestedName = suggestedName,
+                )
+
+                2 -> VersionStep(
+                    versions = versions,
+                    query = versionQuery,
+                    onQueryChange = { versionQuery = it },
+                    filter = filter,
+                    onFilterChange = { filter = it },
+                    selected = selectedVersion,
+                    onSelect = { selectedVersion = it },
+                    javaReq = javaReq,
+                )
+
+                3 -> Column(Modifier.fillMaxSize()) {
+                    InstanceCreationWizardStep2Loader(loader = loader, onSelect = { loader = it })
+                    if (!LoaderService.isSupported(loader)) {
+                        Text(
+                            "⚠ ${loaderLabel(loader)} пока недоступен на Android — выберите Vanilla, Fabric или Quilt.",
+                            fontSize = 11.sp, color = Warn,
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                        )
+                    }
+                }
+
+                4 -> MemoryStep(
+                    maxMemoryMb = maxMemoryMb,
+                    onMemoryChange = { maxMemoryMb = it },
+                    customMemory = customMemory,
+                    onCustomChange = { customMemory = it },
+                    maxAllowed = maxAllowed,
+                    totalRamMb = totalRamMb,
+                    minMemory = app.settings.minMemoryMb(),
+                )
+
+                else -> FinishStep(
+                    app = app,
+                    name = instanceName.trim().ifBlank { suggestedName },
+                    version = selectedVersion?.id ?: "",
+                    loader = loader,
+                    memory = maxMemoryMb,
+                    onCreate = { create() },
+                    loading = loading,
+                    error = error,
+                    stage = install?.stage,
+                )
+            }
         }
 
-        Spacer(Modifier.height(16.dp))
+        error?.let {
+            Text(it, color = Err, fontSize = 12.sp, maxLines = 3, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
+        }
+
+        Spacer(Modifier.height(8.dp))
 
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             if (step > 1) {
                 OutlinedButton(
@@ -257,7 +325,7 @@ fun InstanceCreationWizard(app: NullApp, nav: NavController, onFinish: (Instance
                 Button(
                     onClick = { next() },
                     enabled = canProceedStep(),
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).padding(start = 8.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Acc),
                 ) {
                     Text("Далее", color = Color.White, fontWeight = FontWeight.SemiBold)
@@ -266,126 +334,119 @@ fun InstanceCreationWizard(app: NullApp, nav: NavController, onFinish: (Instance
                 Button(
                     onClick = { create() },
                     enabled = canProceedStep() && !loading,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).padding(start = 8.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Acc),
                 ) {
-                    if (loading) {
-                        Text("Создание…", color = Color.White)
-                    } else {
-                        Text("Создать", color = Color.White, fontWeight = FontWeight.SemiBold)
-                    }
+                    Text(if (loading) "Создание…" else "Создать", color = Color.White, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
 
-        error?.let {
-            Spacer(Modifier.height(8.dp))
-            Text(it, color = Err, fontSize = 12.sp, maxLines = 3)
-        }
-
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(16.dp))
     }
 }
 
+/** Шаг 4: память — чипы по ширине экрана (не вылезают), ручной ввод, лимиты устройства. */
 @Composable
-private fun JavaMemoryStep() {
-    var maxMemoryMb by remember { mutableIntStateOf(4096) }
-    var customMemory by remember { mutableStateOf("") }
+private fun MemoryStep(
+    maxMemoryMb: Int,
+    onMemoryChange: (Int) -> Unit,
+    customMemory: String,
+    onCustomChange: (String) -> Unit,
+    maxAllowed: Int,
+    totalRamMb: Int,
+    minMemory: Int,
+) {
+    var applyError by remember { mutableStateOf<String?>(null) }
 
-    Column(Modifier.padding(horizontal = 16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
         Text("Java и память", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-        Spacer(Modifier.height(8.dp))
-        Text("Максимум RAM (МБ)", fontSize = 12.sp, color = Mute)
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "Java устанавливается автоматически при первом запуске — версия подбирается под игру.",
+            fontSize = 11.sp, color = Mute,
+        )
 
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf(1024, 2048, 4096, 6144, 8192, 12288, 16384).forEach { mb ->
-                val selected = maxMemoryMb == mb
-                Box(
-                    Modifier
-                        .size(64.dp, 40.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(if (selected) AccSoft else MaterialTheme.colorScheme.surface)
-                        .border(if (selected) 1.dp else 0.dp, Acc2, RoundedCornerShape(12.dp))
-                        .clickable { maxMemoryMb = mb },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text("${mb / 1024} ГБ", fontSize = 12.sp, color = if (selected) Acc2 else Mute)
+        Spacer(Modifier.height(12.dp))
+        Text("Максимум RAM (МБ)", fontSize = 12.sp, color = Mute)
+        Spacer(Modifier.height(6.dp))
+
+        // чипы в 4 ряда по ширине — числа не вылезают за экран
+        val options = listOf(512, 1024, 2048, 4096, 6144, 8192).filter { it <= maxAllowed }
+        options.chunked(4).forEach { rowOpts ->
+            Row(
+                Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                rowOpts.forEach { mb ->
+                    val selected = maxMemoryMb == mb
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .height(42.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (selected) AccSoft else MaterialTheme.colorScheme.surface)
+                            .border(if (selected) 1.dp else 0.dp, Acc2, RoundedCornerShape(12.dp))
+                            .clickable { onMemoryChange(mb) },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            if (mb >= 1024) "${mb / 1024} ГБ" else "$mb МБ",
+                            fontSize = 12.sp,
+                            color = if (selected) Acc2 else Mute,
+                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                        )
+                    }
                 }
+                repeat(4 - rowOpts.size) { Spacer(Modifier.weight(1f)) }
             }
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(4.dp))
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(
                 value = customMemory,
-                onValueChange = { customMemory = it },
+                onValueChange = { onCustomChange(it); applyError = null },
                 singleLine = true,
                 modifier = Modifier.weight(1f),
                 label = { Text("Свой ввод (МБ)") },
+                isError = applyError != null,
             )
+            Spacer(Modifier.width(8.dp))
             Button(
                 onClick = {
-                    val v = customMemory.trim().toIntOrNull() ?: return@Button
-                    maxMemoryMb = v
-                    customMemory = ""
-                },
-                modifier = Modifier.width(90.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = AccSoft),
-            ) {
-                Text("Применить", fontSize = 11.sp, color = Acc2)
-            }
-        }
-    }
-}
-
-@Composable
-private fun LoaderStep(loader: String, onSelect: (String) -> Unit) {
-    val items = listOf(
-        "vanilla" to "Ваниль",
-        "fabric" to "Fabric",
-        "forge" to "Forge",
-        "neoforge" to "NeoForge",
-        "quilt" to "Quilt",
-    )
-    Column(Modifier.padding(horizontal = 16.dp)) {
-        Text("Загрузчик модов", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-        Spacer(Modifier.height(8.dp))
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            items.forEach { (id, label) ->
-                val selected = loader == id
-                Box(
-                    Modifier
-                        .weight(1f)
-                        .height(52.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(if (selected) AccSoft else MaterialTheme.colorScheme.surface)
-                        .border(if (selected) 2.dp else 0.dp, Acc2, RoundedCornerShape(16.dp))
-                        .clickable { onSelect(id) },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-                        Image(
-                            painter = painterResource(loaderLogo(id)),
-                            contentDescription = null,
-                            modifier = Modifier.size(26.dp).clip(RoundedCornerShape(7.dp)),
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(label, fontSize = 13.sp, color = if (selected) Acc2 else Mute, fontWeight = FontWeight.SemiBold)
+                    val v = customMemory.trim().toIntOrNull()
+                    when {
+                        v == null -> applyError = "Введите число"
+                        v < minMemory -> applyError = "Минимум $minMemory МБ"
+                        v > maxAllowed -> applyError = "Максимум $maxAllowed МБ"
+                        else -> {
+                            onMemoryChange(v)
+                            onCustomChange("")
+                            applyError = null
+                        }
                     }
-                }
-            }
+                },
+                modifier = Modifier.width(96.dp).height(52.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = AccSoft),
+            ) { Text("Применить", fontSize = 11.sp, color = Acc2) }
         }
-        Spacer(Modifier.height(8.dp))
-        Text(
-            "Ваниль не поддерживает моды. Для модов выберите Fabric, Forge, NeoForge или Quilt.",
-            fontSize = 11.sp, color = Mute,
-        )
+
+        applyError?.let {
+            Spacer(Modifier.height(4.dp))
+            Text(it, fontSize = 11.sp, color = Err)
+        }
+
+        Spacer(Modifier.height(10.dp))
+        Text("Минимум: $minMemory МБ", fontSize = 11.5.sp, color = Mute)
+        if (totalRamMb > 0) {
+            Text("Всего RAM в системе: %,d МБ".format(totalRamMb), fontSize = 11.5.sp, color = Mute)
+        }
+        Text("Доступно выделить игре: до $maxAllowed МБ (75% RAM — защита от сбоя системы)", fontSize = 11.sp, color = Mute)
     }
 }
 
+/** Шаг 2: список версий MC — поиск, фильтры, дата выхода, требуемая Java у выбранной версии. */
 @Composable
 private fun VersionStep(
     versions: List<ManifestVersion>,
@@ -395,15 +456,13 @@ private fun VersionStep(
     onFilterChange: (String) -> Unit,
     selected: ManifestVersion?,
     onSelect: (ManifestVersion) -> Unit,
+    javaReq: Int?,
 ) {
-    Column(Modifier.padding(horizontal = 16.dp)) {
-        Text("Версия Minecraft", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-        Spacer(Modifier.height(8.dp))
-
+    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            WizardChip("Все", filter == "all") { onFilterChange("all") }
             WizardChip("Релизы", filter == "release") { onFilterChange("release") }
-            WizardChip("Снапшоты", filter == "snapshot") { onFilterChange("snapshot") }
+            WizardChip("Все", filter == "all") { onFilterChange("all") }
+            WizardChip("Старые", filter == "old") { onFilterChange("old") }
         }
 
         Spacer(Modifier.height(8.dp))
@@ -417,115 +476,63 @@ private fun VersionStep(
             trailingIcon = { Icon(Icons.Filled.Search, null, tint = Mute, modifier = Modifier.size(18.dp)) },
         )
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(8.dp))
 
         val shown = versions
             .filter {
                 when (filter) {
                     "release" -> it.type == "release"
-                    "snapshot" -> it.type == "snapshot"
+                    "old" -> it.type == "old_alpha" || it.type == "old_beta"
                     else -> true
                 }
             }
             .filter { query.isBlank() || it.id.contains(query, ignoreCase = true) }
 
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.weight(1f)) {
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.weight(1f),
+        ) {
             items(shown, key = { it.id }) { v ->
                 val isSelected = selected?.id == v.id
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .height(44.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(if (isSelected) AccSoft else MaterialTheme.colorScheme.surface)
                         .border(if (isSelected) 1.dp else 0.dp, Acc2, RoundedCornerShape(12.dp))
-                        .clickable { onSelect(v) },
+                        .clickable { onSelect(v) }
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(v.id, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, modifier = Modifier.weight(1f))
+                    Column(Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(v.id, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                            if (isSelected) {
+                                Spacer(Modifier.width(6.dp))
+                                Icon(Icons.Filled.Check, null, tint = Acc2, modifier = Modifier.size(15.dp))
+                            }
+                        }
+                        val date = fmtReleaseDate(v.releaseTime.ifBlank { v.time })
+                        val typeLabel = when (v.type) {
+                            "release" -> "релиз"
+                            "snapshot" -> "снапшот"
+                            else -> "старая"
+                        }
+                        val java = if (isSelected) javaReq?.let { " · Java $it" } ?: "" else ""
+                        if (date.isNotEmpty() || java.isNotEmpty()) {
+                            Text("$date · $typeLabel$java", fontSize = 10.5.sp, color = Mute)
+                        }
+                    }
                     Text(
-                        if (v.type == "release") "Релиз" else "Снапшот",
-                        fontSize = 10.sp, color = Mute,
+                        when (v.type) {
+                            "release" -> "release"
+                            else -> v.type.replace("_", "-")
+                        },
+                        fontSize = 9.5.sp, color = Mute,
                     )
-                    if (isSelected) Icon(Icons.Filled.Check, null, tint = Acc2, modifier = Modifier.size(18.dp))
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun TemplateStep(
-    template: String,
-    onTemplateChange: (String) -> Unit,
-    name: String,
-    onNameChange: (String) -> Unit,
-    color: String,
-    onColorChange: (String) -> Unit,
-) {
-    Column(Modifier.padding(horizontal = 16.dp)) {
-        Text("Шаблон и название", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-        Spacer(Modifier.height(8.dp))
-
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            val templates = listOf(
-                "clean" to "Чистый",
-                "fabric_burst" to "Fabric + Bust FPS",
-                "shaders" to "Шейдеры",
-                "forge" to "Forge",
-                "neoforge" to "NeoForge",
-                "quilt" to "Quilt",
-            )
-            templates.forEach { (id, label) ->
-                val selected = template == id
-                Box(
-                    Modifier
-                        .weight(1f)
-                        .height(52.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(if (selected) AccSoft else MaterialTheme.colorScheme.surface)
-                        .border(if (selected) 2.dp else 0.dp, Acc2, RoundedCornerShape(16.dp))
-                        .clickable { onTemplateChange(id) },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(label, fontSize = 11.5.sp, color = if (selected) Acc2 else Mute, maxLines = 2)
-                }
-            }
-        }
-
-        Spacer(Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = name,
-            onValueChange = { onNameChange(it) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Название") },
-            placeholder = { Text("например, 26.3 Fabric") },
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("Цвет иконки", fontSize = 12.sp, color = Mute)
-            Spacer(Modifier.width(8.dp))
-            Box(
-                Modifier.size(24.dp).clip(RoundedCornerShape(6.dp)).background(Color(android.graphics.Color.parseColor(color))),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text("✓", fontSize = 10.sp, color = Color.White)
-            }
-            Spacer(Modifier.width(8.dp))
-            Button(
-                onClick = { onColorChange("#3ecf8e") },
-                modifier = Modifier.width(80.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(android.graphics.Color.parseColor(color))),
-            ) {
-                Text("Зелёный", fontSize = 11.sp, color = Color.White)
-            }
+            item { Spacer(Modifier.height(8.dp)) }
         }
     }
 }
@@ -540,8 +547,9 @@ private fun FinishStep(
     onCreate: () -> Unit,
     loading: Boolean,
     error: String?,
+    stage: String?,
 ) {
-    Column(Modifier.padding(horizontal = 16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
         Text("Готово к созданию", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
         Spacer(Modifier.height(12.dp))
 
@@ -554,32 +562,34 @@ private fun FinishStep(
             }
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(name, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                Text("${loaderLabel(loader)} $version · ${memory / 1024} ГБ RAM", fontSize = 11.sp, color = Mute)
+                Text(name, fontWeight = FontWeight.Bold, fontSize = 15.sp, maxLines = 2)
+                Text("$version · ${loaderLabel(loader)}", fontSize = 11.sp, color = Mute)
             }
         }
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(14.dp))
 
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Column {
-                Text("Макс. RAM", fontSize = 11.sp, color = Mute)
-                Text("${memory / 1024} ГБ", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-            }
-            Column {
-                Text("Загрузчик", fontSize = 11.sp, color = Mute)
-                Text(loaderLabel(loader), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-            }
-            Column {
-                Text("Версия", fontSize = 11.sp, color = Mute)
-                Text(version, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-            }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            SummaryCell("Версия", version)
+            SummaryCell("Загрузчик", loaderLabel(loader))
+            SummaryCell("Память", "${memory / 1024} ГБ")
         }
 
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(14.dp))
+
+        if (loading && stage != null) {
+            LinearProgressIndicator(
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp)),
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(stage, fontSize = 11.sp, color = Acc2)
+            Spacer(Modifier.height(8.dp))
+        }
+
+        error?.let {
+            Text(it, fontSize = 12.sp, color = Err, maxLines = 4)
+            Spacer(Modifier.height(8.dp))
+        }
 
         Button(
             onClick = { onCreate() },
@@ -587,12 +597,25 @@ private fun FinishStep(
             modifier = Modifier.fillMaxWidth().height(52.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Acc),
         ) {
-            if (loading) {
-                Text("Создание…", color = Color.White, fontWeight = FontWeight.SemiBold)
-            } else {
-                Text("Создать сборку", color = Color.White, fontWeight = FontWeight.SemiBold)
-            }
+            Text(
+                if (loading) "Создание…" else "Создать сборку",
+                color = Color.White, fontWeight = FontWeight.SemiBold,
+            )
         }
+
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "После создания откроется карточка сборки — там запуск, моды, миры и ресурс-паки.",
+            fontSize = 11.sp, color = Mute,
+        )
+    }
+}
+
+@Composable
+private fun SummaryCell(label: String, value: String) {
+    Column {
+        Text(label, fontSize = 11.sp, color = Mute)
+        Text(value, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
     }
 }
 
@@ -615,18 +638,26 @@ private fun WizardChip(text: String, selected: Boolean, onClick: () -> Unit) {
     }
 }
 
+/** "26.3" / "1.21.11" — локализованная дата выхода из ISO-строки Mojang. */
+private fun fmtReleaseDate(iso: String): String {
+    if (iso.isBlank()) return ""
+    return try {
+        val inSdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.US)
+        val date = try {
+            inSdf.parse(iso)
+        } catch (_: Exception) {
+            SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).parse(iso)
+        }
+        if (date == null) "" else SimpleDateFormat("d MMM yyyy", Locale("ru")).format(date)
+    } catch (_: Exception) {
+        ""
+    }
+}
+
 private fun loaderLabel(loader: String): String = when (loader) {
     "fabric" -> "Fabric"
     "forge" -> "Forge"
     "neoforge" -> "NeoForge"
     "quilt" -> "Quilt"
     else -> "Ваниль"
-}
-
-private fun loaderLogo(loader: String): Int = when (loader) {
-    "fabric" -> R.drawable.loader_fabric
-    "forge" -> R.drawable.loader_forge
-    "neoforge" -> R.drawable.loader_neoforge
-    "quilt" -> R.drawable.loader_quilt
-    else -> R.drawable.loader_vanilla
 }

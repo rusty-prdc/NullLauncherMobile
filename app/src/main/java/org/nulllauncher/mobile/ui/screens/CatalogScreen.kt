@@ -71,7 +71,7 @@ import org.nulllauncher.mobile.ui.theme.Ok
  * честная проверка совместимости (версия MC + загрузчик).
  */
 @Composable
-fun CatalogScreen(app: NullApp, nav: NavController) {
+fun CatalogScreen(app: NullApp, nav: NavController, initialInstanceId: String? = null) {
     val scope = rememberCoroutineScope()
     var query by remember { mutableStateOf("") }
     var hits by remember { mutableStateOf<List<ModHit>>(emptyList()) }
@@ -84,16 +84,23 @@ fun CatalogScreen(app: NullApp, nav: NavController) {
 
     var instances by remember { mutableStateOf(app.instances.list()) }
     var targetId by remember {
-        mutableStateOf(app.instances.list().firstOrNull()?.id)
+        mutableStateOf(
+            initialInstanceId?.takeIf { id -> instances.any { it.id == id } }
+                ?: instances.firstOrNull()?.id
+        )
     }
     val target: Instance? = instances.firstOrNull { it.id == targetId } ?: instances.firstOrNull()
 
     fun refreshInstalled() {
         installed = if (target != null) {
-            Storage.instanceMods(app, target.id)
-                .listFiles()
-                ?.map { it.name.removeSuffix(".disabled") }
-                ?.map { it.substringBeforeLast("-") }  // slug-догадка по имени файла
+            val dir = if (type == "resourcepack") Storage.instanceResourcePacks(app, target.id)
+            else Storage.instanceMods(app, target.id)
+            dir.listFiles()
+                ?.map {
+                    it.name.removeSuffix(".disabled")
+                        .removeSuffix(".zip")
+                        .substringBeforeLast("-")
+                }
                 ?.toSet() ?: emptySet()
         } else emptySet()
     }
@@ -116,6 +123,12 @@ fun CatalogScreen(app: NullApp, nav: NavController) {
             }
             searching = false
         }
+    }
+
+    // при смене типа (мод/модпак/ресурс-пак) или целевой сборки — пересчёт установленного
+    androidx.compose.runtime.LaunchedEffect(type, targetId) {
+        refreshInstalled()
+        if (hits.isNotEmpty()) doSearch()
     }
 
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
@@ -263,7 +276,18 @@ fun CatalogScreen(app: NullApp, nav: NavController) {
                         }
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) {
-                            Text(hit.title, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, maxLines = 1)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(hit.title, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, maxLines = 1, modifier = Modifier.weight(1f, fill = false))
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    when (type) {
+                                        "resourcepack" -> "ресурс-пак"
+                                        "modpack" -> "модпак"
+                                        else -> "мод"
+                                    },
+                                    fontSize = 9.5.sp, color = Mute,
+                                )
+                            }
                             Text(
                                 "от ${hit.author} · ${fmtDownloads(hit.downloads)}",
                                 fontSize = 11.sp, color = Mute,
@@ -294,17 +318,24 @@ fun CatalogScreen(app: NullApp, nav: NavController) {
                                 scope.launch {
                                     installingSlug = hit.slug
                                     try {
-                                        val ver = ModrinthService.bestVersion(hit.slug, t.versionId, t.loader)
-                                            ?: throw LauncherException("Нет версии для ${t.versionId} · ${loaderLabel(t)}", hit.title)
+                                        val t2 = target
+                                        val ver = ModrinthService.bestVersion(hit.slug, t2.versionId, t2.loader)
+                                            ?: throw LauncherException("Нет версии для ${t2.versionId} · ${loaderLabel(t2)}", hit.title)
                                         val file = ver.files.firstOrNull { f -> f.primary } ?: ver.files.firstOrNull()
                                             ?: throw LauncherException("В версии нет файла", ver.name)
-                                        val dest = when (type) {
-                                            "resourcepack" -> Storage.instanceResourcePacks(app, t.id)
-                                            else -> Storage.instanceMods(app, t.id)
-                                        }
+                                        val isPack = type == "resourcepack"
+                                        val dest = if (isPack) Storage.instanceResourcePacks(app, t2.id)
+                                            else Storage.instanceMods(app, t2.id)
                                         ModrinthService.installFile(file, dest) { d, tg ->
                                             installProgress = InstallProgress("Скачивание ${file.filename}", d, tg)
                                         }
+                                        app.logDownload(
+                                            hit.title,
+                                            (if (isPack) "Ресурс-пак" else "Мод") + " → ${t2.name}",
+                                            file.size,
+                                            true,
+                                        )
+                                        message = null
                                         refreshInstalled()
                                     } catch (e: Exception) {
                                         message = e.message ?: "Ошибка установки"

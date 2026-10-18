@@ -347,7 +347,7 @@ fun InstanceDetailScreen(app: NullApp, nav: NavController, instanceId: String) {
             item {
                 Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("Моды", fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.weight(1f))
-                    TextButton(onClick = { nav.navigate("catalog") }) {
+                    TextButton(onClick = { nav.navigate("catalog/${inst.id}") }) {
                         Icon(Icons.Filled.Add, null, tint = Acc2, modifier = Modifier.size(16.dp))
                         Text(" Из каталога", color = Acc2, fontSize = 12.sp)
                     }
