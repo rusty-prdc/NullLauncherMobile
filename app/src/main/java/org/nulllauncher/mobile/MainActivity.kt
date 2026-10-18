@@ -32,14 +32,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import kotlinx.coroutines.delay
 import org.nulllauncher.mobile.ui.screens.BottomBar
 import org.nulllauncher.mobile.ui.screens.CatalogScreen
 import org.nulllauncher.mobile.ui.screens.HomeScreen
+import org.nulllauncher.mobile.ui.screens.InstanceDetailScreen
 import org.nulllauncher.mobile.ui.screens.InstancesScreen
+import org.nulllauncher.mobile.ui.screens.LogsScreen
 import org.nulllauncher.mobile.ui.screens.ProfileScreen
 import org.nulllauncher.mobile.ui.screens.VersionsScreen
 import org.nulllauncher.mobile.ui.theme.Acc
@@ -128,17 +132,28 @@ private fun MainNav() {
                 composable("versions") { VersionsScreen(app, nav) }
                 composable("catalog") { CatalogScreen(app, nav) }
                 composable("profile") { ProfileScreen(app, nav) }
+                composable("logs") { LogsScreen(app, nav) }
+                composable(
+                    "instance/{instanceId}",
+                    arguments = listOf(navArgument("instanceId") { type = NavType.StringType }),
+                ) { back ->
+                    InstanceDetailScreen(app, nav, back.arguments?.getString("instanceId") ?: return@composable)
+                }
             }
         }
-        BottomBar(
-            current = nav.currentBackStackEntry?.destination?.route ?: "home",
-            onSelect = { route ->
-                nav.navigate(route) {
-                    popUpTo("home") { saveState = true }
-                    launchSingleTop = true
-                    restoreState = true
-                }
-            },
-        )
+        val route = nav.currentBackStackEntry?.destination?.route ?: "home"
+        // На детальных экранах нижняя панель скрыта — они закрываются кнопкой «назад»
+        if (route in setOf("home", "instances", "versions", "catalog", "profile")) {
+            BottomBar(
+                current = route,
+                onSelect = { r ->
+                    nav.navigate(r) {
+                        popUpTo("home") { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+            )
+        }
     }
 }

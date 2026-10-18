@@ -200,7 +200,7 @@ fun HomeScreen(app: NullApp, nav: NavController) {
 
         LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
             items(instances, key = { it.id }) { inst ->
-                InstanceRow(inst) { nav.navigate("instances") }
+                InstanceRow(inst) { nav.navigate("instance/${inst.id}") }
             }
         }
     }

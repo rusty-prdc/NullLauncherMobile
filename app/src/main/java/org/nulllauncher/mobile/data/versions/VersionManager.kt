@@ -139,6 +139,13 @@ class VersionManager(private val ctx: Context) {
         return "занято ${fmt(total - free)} · свободно ${fmt(free)}"
     }
 
+    /** Количество установленных каталогов версий (с json+jar) */
+    fun versionsDirCount(): Int =
+        Storage.versions(ctx).listFiles()?.count { dir ->
+            dir.isDirectory && File(dir, "${dir.name}.json").exists() &&
+                File(dir, "${dir.name}.jar").exists()
+        } ?: 0
+
     fun fmt(bytes: Long): String = when {
         bytes >= 1L shl 30 -> "%.1f ГБ".format(bytes / (1024.0 * 1024 * 1024))
         bytes >= 1L shl 20 -> "%.0f МБ".format(bytes / (1024.0 * 1024))

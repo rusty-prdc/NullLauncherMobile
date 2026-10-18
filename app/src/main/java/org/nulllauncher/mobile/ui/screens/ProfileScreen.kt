@@ -17,10 +17,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -45,41 +46,66 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.delay
+import androidx.navigation.NavController
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import org.nulllauncher.mobile.BuildConfig
 import org.nulllauncher.mobile.NullApp
-import org.nulllauncher.mobile.data.accounts.Account
+import org.nulllauncher.mobile.core.Storage
+import org.nulllauncher.mobile.data.accounts.AccountService
 import org.nulllauncher.mobile.ui.theme.Acc
 import org.nulllauncher.mobile.ui.theme.Card2
 import org.nulllauncher.mobile.ui.theme.Err
 import org.nulllauncher.mobile.ui.theme.Mute
 import org.nulllauncher.mobile.ui.theme.Ok
+import org.nulllauncher.mobile.ui.theme.Warn
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * Профиль: аккаунты Microsoft (device-code вход) + настройки производительности.
  */
 @Composable
-fun ProfileScreen(app: NullApp, nav: NavController2) {
+fun ProfileScreen(app: NullApp, nav: NavController) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
     var account by remember { mutableStateOf(app.currentAccount()) }
-    var deviceCode by remember { mutableStateOf<org.nulllauncher.mobile.data.accounts.AccountService.DeviceCode?>(null) }
+    var deviceCode by remember { mutableStateOf<AccountService.DeviceCode?>(null) }
     var waiting by remember { mutableStateOf(false) }
+    var loginError by remember { mutableStateOf<String?>(null) }
 
+    // Безопасные значения по умолчанию — до загрузки из DataStore
     var memoryMb by remember { mutableFloatStateOf(2048f) }
     var maxMemory by remember { mutableStateOf(4096) }
+    var minMemory by remember { mutableStateOf(512) }
     var fullscreen by remember { mutableStateOf(false) }
     var touchControls by remember { mutableStateOf(true) }
     var renderScale by remember { mutableFloatStateOf(100f) }
+    var guiScale by remember { mutableStateOf(0) }
+    var storageText by remember { mutableStateOf("") }
+    var versionsCount by remember { mutableStateOf(0) }
+    var instancesCount by remember { mutableStateOf(0) }
 
     LaunchedEffect(Unit) {
-        maxMemory = app.settings.maxMemoryMb()
-        memoryMb = app.settings.memoryMb.first().toFloat()
-        fullscreen = app.settings.fullscreen.first()
-        touchControls = app.settings.touchControls.first()
-        renderScale = app.settings.renderScale.first().toFloat()
+        try {
+            minMemory = app.settings.minMemoryMb()
+            maxMemory = app.settings.maxMemoryMb()
+            memoryMb = app.settings.memoryMb.first().toFloat().coerceIn(minMemory.toFloat(), maxMemory.toFloat())
+            fullscreen = app.settings.fullscreen.first()
+            touchControls = app.settings.touchControls.first()
+            renderScale = app.settings.renderScale.first().toFloat()
+            guiScale = app.settings.guiScale.first()
+        } catch (_: Exception) {
+            // дефолты уже стоят
+        }
+        try {
+            storageText = app.versions.freeSpaceText()
+            versionsCount = app.versionsCount()
+            instancesCount = app.instances.list().size
+        } catch (_: Exception) {
+        }
     }
 
     Column(
@@ -93,7 +119,7 @@ fun ProfileScreen(app: NullApp, nav: NavController2) {
         Spacer(Modifier.height(10.dp))
 
         // ---------- аккаунт ----------
-        Card(shape = RoundedCornerShape(18.dp)) {
+        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF14141C))) {
             Column(Modifier.padding(16.dp)) {
                 if (account == null) {
                     Text("Вход через Microsoft", fontWeight = FontWeight.Bold, fontSize = 14.sp)
@@ -106,26 +132,26 @@ fun ProfileScreen(app: NullApp, nav: NavController2) {
                     Button(
                         onClick = {
                             scope.launch {
+                                waiting = true
+                                loginError = null
                                 try {
                                     val dc = app.accounts.requestDeviceCode()
                                     deviceCode = dc
-                                    waiting = true
-                                    // открываем страницу подтверждения
                                     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(dc.verificationUri))
                                     context.startActivity(intent)
-                                    // опрашиваем токен
                                     val ms = app.accounts.pollToken(dc.deviceCode)
                                     val acc = app.accounts.loginWithMicrosoft(ms)
                                     app.accounts.add(acc)
                                     account = acc
                                 } catch (e: Exception) {
-                                    app.lastError.value = e.message ?: "Ошибка входа"
+                                    loginError = e.message ?: "Ошибка входа"
                                 }
                                 waiting = false
                                 deviceCode = null
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
+                        enabled = !waiting,
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6D46C8)),
                     ) { Text("Войти через Microsoft", fontWeight = FontWeight.SemiBold) }
 
@@ -133,8 +159,12 @@ fun ProfileScreen(app: NullApp, nav: NavController2) {
                         Spacer(Modifier.height(10.dp))
                         LinearProgressIndicator(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp)))
                         Spacer(Modifier.height(8.dp))
-                        Text("Код: ${deviceCode!!.userCode}", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Acc)
+                        Text("Код: ${deviceCode!!.userCode}", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Acc)
                         Text("Введи его на ${deviceCode!!.verificationUri}", fontSize = 12.sp, color = Mute)
+                    }
+                    loginError?.let {
+                        Spacer(Modifier.height(8.dp))
+                        Text(it, color = Err, fontSize = 12.sp)
                     }
                 } else {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -149,14 +179,21 @@ fun ProfileScreen(app: NullApp, nav: NavController2) {
                         }
                         TextButton(onClick = {
                             scope.launch {
-                                try { account = app.accounts.refresh(account!!) }
-                                catch (e: Exception) { app.lastError.value = "Токен не обновился: ${e.message}" }
+                                try {
+                                    account = app.accounts.refresh(account!!)
+                                } catch (e: Exception) {
+                                    loginError = "Токен не обновился: ${e.message}"
+                                }
                             }
                         }) { Text("Обновить", fontSize = 12.sp, color = Ok) }
                     }
+                    loginError?.let {
+                        Spacer(Modifier.height(6.dp))
+                        Text(it, color = Err, fontSize = 12.sp)
+                    }
                     Spacer(Modifier.height(6.dp))
                     TextButton(onClick = {
-                        account?.let { app.accounts.remove(it.uuid) }
+                        account?.let { acc -> app.accounts.remove(acc.uuid) }
                         account = null
                     }) { Text("Выйти из аккаунта", fontSize = 12.sp, color = Err) }
                 }
@@ -166,17 +203,19 @@ fun ProfileScreen(app: NullApp, nav: NavController2) {
         Spacer(Modifier.height(14.dp))
 
         // ---------- память ----------
-        Card(shape = RoundedCornerShape(18.dp)) {
+        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF14141C))) {
             Column(Modifier.padding(16.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("Оперативная память", fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp)
                     Text("${"%.1f".format(memoryMb / 1024f)} ГБ", color = Color(0xFFC4B0FF), fontSize = 13.5.sp)
                 }
                 Slider(
-                    value = memoryMb,
+                    value = memoryMb.coerceIn(minMemory.toFloat(), maxMemory.toFloat()),
                     onValueChange = { memoryMb = it },
-                    onValueChangeFinished = { scope.launch { app.settings.setMemoryMb(memoryMb.toInt()) } },
-                    valueRange = 512f..maxMemory.toFloat(),
+                    onValueChangeFinished = {
+                        scope.launch { app.settings.setMemoryMb(memoryMb.toInt()) }
+                    },
+                    valueRange = minMemory.toFloat()..maxMemory.toFloat(),
                 )
                 Text(
                     "макс. безопасный: ${"%.1f".format(maxMemory / 1024f)} ГБ — больше нельзя без риска сбоя",
@@ -188,7 +227,7 @@ fun ProfileScreen(app: NullApp, nav: NavController2) {
         Spacer(Modifier.height(14.dp))
 
         // ---------- графика ----------
-        Card(shape = RoundedCornerShape(18.dp)) {
+        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF14141C))) {
             Column(Modifier.padding(16.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Column {
@@ -223,17 +262,61 @@ fun ProfileScreen(app: NullApp, nav: NavController2) {
                     onValueChangeFinished = { scope.launch { app.settings.setRenderScale(renderScale.toInt()) } },
                     valueRange = 50f..150f,
                 )
+                Spacer(Modifier.height(6.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Размер GUI", fontSize = 13.5.sp)
+                    Text(if (guiScale == 0) "Авто" else "$guiScale", color = Color(0xFFC4B0FF), fontSize = 13.5.sp)
+                }
+                Slider(
+                    value = guiScale.toFloat(),
+                    onValueChange = { guiScale = it.toInt() },
+                    onValueChangeFinished = { scope.launch { app.settings.setGuiScale(guiScale) } },
+                    valueRange = 0f..4f,
+                    steps = 3,
+                )
             }
         }
 
         Spacer(Modifier.height(14.dp))
 
-        // ---------- место ----------
-        Card(shape = RoundedCornerShape(18.dp)) {
+        // ---------- Java Runtime ----------
+        JavaRuntimeCard(app)
+
+        Spacer(Modifier.height(14.dp))
+
+        // ---------- место и статистика ----------
+        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF14141C))) {
             Column(Modifier.padding(16.dp)) {
                 Text("Хранилище", fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp)
                 Spacer(Modifier.height(4.dp))
-                Text(app.versions.freeSpaceText(), fontSize = 12.sp, color = Mute)
+                Text(storageText.ifBlank { "—" }, fontSize = 12.sp, color = Mute)
+                Spacer(Modifier.height(8.dp))
+                HorizontalDivider(color = Color(0x14FFFFFF))
+                Spacer(Modifier.height(8.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Версий Minecraft: $versionsCount", fontSize = 12.sp, color = Mute)
+                    Text("Сборок: $instancesCount", fontSize = 12.sp, color = Mute)
+                }
+            }
+        }
+
+        Spacer(Modifier.height(14.dp))
+
+        // ---------- о приложении / логи ----------
+        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF14141C))) {
+            Column(Modifier.padding(16.dp)) {
+                TextButton(onClick = { nav.navigate("logs") }, modifier = Modifier.fillMaxWidth()) {
+                    Text("📋 Логи запуска", fontSize = 13.sp, color = Color(0xFFC4B0FF))
+                }
+                HorizontalDivider(color = Color(0x14FFFFFF))
+                Column(Modifier.padding(top = 10.dp)) {
+                    Text("nullLauncher Mobile ${BuildConfig.VERSION_NAME}", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        "Вход через Microsoft — официально, без паролей. Для запуска игры нужно Java-окружение (см. выше). Minecraft — товар Mojang/Microsoft.",
+                        fontSize = 11.sp, color = Mute,
+                    )
+                }
             }
         }
 
@@ -241,4 +324,52 @@ fun ProfileScreen(app: NullApp, nav: NavController2) {
     }
 }
 
-typealias NavController2 = androidx.navigation.NavController
+/** Карточка Java Runtime: показывает найденный, ссылка на скачивание Temurin */
+@Composable
+private fun JavaRuntimeCard(app: NullApp) {
+    val context = LocalContext.current
+    var javaPath by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        javaPath = app.settings.javaPathValue()
+    }
+
+    Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF14141C))) {
+        Column(Modifier.padding(16.dp)) {
+            Text("Java Runtime", fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp)
+            Spacer(Modifier.height(4.dp))
+            if (javaPath != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("✅ ", fontSize = 12.sp)
+                    Text(javaPath!!, fontSize = 11.sp, color = Ok, modifier = Modifier.weight(1f))
+                }
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("⚠️ ", fontSize = 12.sp)
+                    Text(
+                        "Не найден. Для запуска Java-игры нужен JRE 17/21 (aarch64).",
+                        fontSize = 11.sp, color = Warn, modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            OutlinedButton(
+                onClick = {
+                    val intent = Intent(
+                        Intent.ACTION_VIEW,
+                        Uri.parse("https://adoptium.net/temurin/releases/?version=21&os=linux&arch=aarch64"),
+                    )
+                    context.startActivity(intent)
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Скачать JRE 21 (Adoptium)", fontSize = 12.sp, color = Color(0xFFC4B0FF))
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "После скачивания распакуй в папку приложения runtimes/ или укажи путь вручную.",
+                fontSize = 10.5.sp, color = Mute,
+            )
+        }
+    }
+}

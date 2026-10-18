@@ -1,6 +1,7 @@
 package org.nulllauncher.mobile.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -86,7 +87,12 @@ fun InstancesScreen(app: NullApp, nav: NavController) {
 
         LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
             items(instances, key = { it.id }) { inst ->
-                Card(shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
+                Card(
+                    shape = RoundedCornerShape(18.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { nav.navigate("instance/${inst.id}") },
+                ) {
                     Column(Modifier.padding(12.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
@@ -97,14 +103,15 @@ fun InstancesScreen(app: NullApp, nav: NavController) {
                             Column(Modifier.weight(1f)) {
                                 Text(inst.name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                                 Text(
-                                    "${loaderLabel(inst)} ${inst.versionId} · ${inst.memoryMb / 1024} ГБ RAM",
+                                    "${loaderLabel(inst)} ${inst.versionId} · ${inst.memoryMb / 1024} ГБ RAM · ${app.modCount(inst.id)} модов",
                                     fontSize = 11.sp, color = Mute,
                                 )
                             }
+                            Text("›", fontSize = 20.sp, color = Mute)
                         }
-                        Spacer(Modifier.height(10.dp))
+                        Spacer(Modifier.height(4.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            SmallAction("✏️ Переименовать") { editTarget = inst }
+                            SmallAction("⚙ Управлять") { nav.navigate("instance/${inst.id}") }
                             SmallAction("⧉ Копия") {
                                 scope.launch {
                                     app.instances.copy(inst.id, "${inst.name} (копия)")

@@ -40,9 +40,28 @@ class NullApp : Application() {
     fun modCount(instanceId: String): Int =
         ModrinthService.installedMods(File(filesDir, "instances/$instanceId/mods")).size
 
+    /** Сколько версий Minecraft установлено на диске */
+    fun versionsCount(): Int =
+        versions.versionsDirCount()
+
     override fun onCreate() {
         super.onCreate()
         instance = this
+
+        // Глобальный ловитель падений: пишем стек в файл, чтобы разобраться с вылетами
+        val previous = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            try {
+                val dir = File(filesDir, "logs").apply { mkdirs() }
+                File(dir, "crash-${System.currentTimeMillis()}.txt").writeText(
+                    "device=${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}\n" +
+                        "sdk=${android.os.Build.VERSION.SDK_INT}\n" +
+                        throwable.stackTraceToString(),
+                )
+            } catch (_: Throwable) {
+            }
+            previous?.uncaughtException(thread, throwable)
+        }
     }
 
     companion object {
