@@ -128,7 +128,7 @@ fun InstanceDetailScreen(app: NullApp, nav: NavController, instanceId: String) {
         scope.launch {
             app.settings.setLastInstance(inst.id)
             app.instances.markPlayed(inst.id)
-            app.launcher.start(inst, account, app.settings.javaPathValue()) { l -> app.appendLog(l) }
+            app.launcher.start(inst, account, app.settings.currentJavaPath()) { l -> app.appendLog(l) }
             refresh()
         }
     }

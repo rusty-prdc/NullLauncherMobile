@@ -52,8 +52,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
+import org.nulllauncher.mobile.InstallProgress
 import org.nulllauncher.mobile.NullApp
 import org.nulllauncher.mobile.data.instances.Instance
+import org.nulllauncher.mobile.data.loaders.LoaderService
 import org.nulllauncher.mobile.ui.theme.Acc
 import org.nulllauncher.mobile.ui.theme.Acc2
 import org.nulllauncher.mobile.ui.theme.AccSoft
@@ -189,7 +191,7 @@ fun InstancesScreen(app: NullApp, nav: NavController) {
             },
             confirmButton = {
                 TextButton(onClick = {
-                    app.instances.create(
+                    val created = app.instances.create(
                         name = name.ifBlank { "Сборка $version" },
                         versionId = version,
                         loader = loader,
@@ -198,6 +200,20 @@ fun InstancesScreen(app: NullApp, nav: NavController) {
                     }
                     showCreate = false
                     refresh()
+                    if (loader != "vanilla") {
+                        scope.launch {
+                            try {
+                                val lv = LoaderService.latestLoader(loader)
+                                LoaderService.installLoader(app, loader, version, lv.version) { s, d, t ->
+                                    app.installProgress.value = InstallProgress(s, d, t)
+                                }
+                            } catch (e: Exception) {
+                                app.lastError.value = e.message ?: "Ошибка установки загрузчика"
+                            } finally {
+                                app.installProgress.value = null
+                            }
+                        }
+                    }
                 }) { Text("Создать", color = Acc) }
             },
             dismissButton = { TextButton(onClick = { showCreate = false }) { Text("Отмена", color = Mute) } },

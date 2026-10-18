@@ -10,7 +10,6 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.runBlocking
 
 private val Context.ds by preferencesDataStore(name = "settings")
 
@@ -76,14 +75,14 @@ class SettingsRepository(private val ctx: Context) {
         return (ramMb * 3 / 4).coerceIn(minMemoryMb(), 8192)
     }
 
-    /** Безопасное текущее значение (всегда в допустимом диапазоне) */
-    fun currentMemoryMbSafe(): Int =
-        runBlocking { memoryMb.first() }.coerceIn(minMemoryMb(), maxMemoryMb())
+    /** Безопасное текущее значение памяти (всегда в допустимом диапазоне) */
+    suspend fun currentMemoryMb(): Int =
+        memoryMb.first().coerceIn(minMemoryMb(), maxMemoryMb())
 
-    /** Синхронное чтение пути Java (для запуска вне Flow) */
-    fun javaPathValue(): String? = runBlocking { javaPath.first() }
+    /** Текущий путь к Java */
+    suspend fun currentJavaPath(): String? = javaPath.first()
 
-    /** Синхронное чтение id выбранной сборки */
-    fun lastInstanceIdValue(): String? = runBlocking { lastInstanceId.first() }
+    /** Последний id выбранной сборки */
+    suspend fun currentLastInstanceId(): String? = lastInstanceId.first()
 }
 

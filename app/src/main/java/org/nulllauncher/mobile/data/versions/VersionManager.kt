@@ -1,16 +1,20 @@
 package org.nulllauncher.mobile.data.versions
 
-import org.nulllauncher.mobile.core.Net
-import org.nulllauncher.mobile.core.Storage
 import android.content.Context
+import android.os.Build
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.decodeFromString
+import org.nulllauncher.mobile.core.InstallCancel
+import org.nulllauncher.mobile.core.LauncherException
+import org.nulllauncher.mobile.core.Net
+import org.nulllauncher.mobile.core.Storage
+import org.nulllauncher.mobile.core.TarXz
 import java.io.File
 
 /**
- * Менеджер версий: официальный манифест Mojang (piston-meta),
- * скачивание client.jar, библиотек, ассетов с проверкой sha1.
+ * Менеджер версий: официальный манифест Mojang,
+ * скачивание client.jar, библиотек, нативников и ассетов с проверкой sha1.
  */
 class VersionManager(private val ctx: Context) {
 
@@ -20,6 +24,15 @@ class VersionManager(private val ctx: Context) {
 
         /** id установленной сборки Fabric: "1.21.1-fabric-0.16.9" */
         fun fabricId(gameVersion: String, loaderVersion: String) = "$gameVersion-fabric-$loaderVersion"
+
+        /** Минимальная версия Java для сборки по json версии (8 / 16 / 17 / 21) */
+        fun requiredJavaMajor(vj: VersionJson): Int =
+            vj.javaVersion?.majorVersion?.let { when {
+                it <= 8 -> 8
+                it <= 16 -> 16
+                it <= 17 -> 17
+                else -> 21
+            } } ?: 17
     }
 
     private var cachedManifest: VersionManifest? = null
@@ -37,21 +50,20 @@ class VersionManager(private val ctx: Context) {
             return Net.json.decodeFromString(file.readText())
         }
         val mv = manifest().versions.firstOrNull { it.id == id }
-            ?: throw org.nulllauncher.mobile.core.LauncherException("Версия не найдена", id)
+            ?: throw LauncherException("Версия не найдена", id)
         val json = Net.get(mv.url)
         file.parentFile?.mkdirs()
         file.writeText(json)
         return Net.json.decodeFromString(json)
     }
 
-    /** Установлена ли версия. Для сборок с inheritsFrom (Fabric) client.jar переиспользуется базовый. */
+    /** Установлена ли версия. Для сборок с inheritsFrom (Fabric) client.jar переиспользуется базовым. */
     fun isInstalled(id: String): Boolean {
         val dir = File(Storage.versions(ctx), id)
         val json = File(dir, "$id.json")
         if (!json.exists()) return false
         val jar = File(dir, "$id.jar")
         if (jar.exists() && jar.length() > 0) return true
-        // Fabric/Quilt: проверяем, что базовая vanilla-версия установлена
         val inherits = Regex("\"inheritsFrom\"\\s*:\\s*\"([^\"]+)\"").find(json.readText())?.groupValues?.get(1)
         return inherits != null && File(Storage.versions(ctx), "$inherits/$inherits.jar").let { it.exists() && it.length() > 0 }
     }
@@ -67,19 +79,21 @@ class VersionManager(private val ctx: Context) {
             ?.firstOrNull { isInstalled(it) }
     }
 
-    /** Установка версии: client.jar + библиотеки + ассеты. Прогресс: стадия, сделано, всего. */
+    /** Установка версии: client.jar + библиотеки + нативники + ассеты. Прогресс: стадия, сделано, всего. */
     suspend fun install(
         id: String,
         onProgress: (stage: String, done: Long, total: Long) -> Unit,
     ) = withContext(Dispatchers.IO) {
+        InstallCancel.begin()
         val vj = versionJson(id, force = true)
         val vdir = File(Storage.versions(ctx), id).apply { mkdirs() }
 
         // 1. client.jar
         val client = vj.downloads?.client
-            ?: throw org.nulllauncher.mobile.core.LauncherException("Версия без client.jar", id)
+            ?: throw LauncherException("Версия без client.jar", id)
         onProgress("Клиент игры", 0, client.size)
         Net.downloadFile(client.url, File(vdir, "$id.jar"), client.sha1, client.size) { d, t ->
+            if (InstallCancel.requested) throw LauncherException("Установка отменена", id)
             onProgress("Клиент игры", d, if (t > 0) t else client.size)
         }
 
@@ -88,9 +102,9 @@ class VersionManager(private val ctx: Context) {
         var done = 0L
         onProgress("Библиотеки", 0, libs.size.toLong())
         for (lib in libs) {
+            if (InstallCancel.requested) throw LauncherException("Установка отменена", id)
             val art = lib.downloads?.artifact ?: continue
             if (art.url.isBlank()) continue
-            // путь из coordinates: group/artifact/version/artifact-version.jar
             val parts = lib.name.split(":")
             if (parts.size < 3) continue
             val path = "${parts[0].replace('.', '/')}/${parts[1]}/${parts[2]}/${parts[1]}-${parts[2]}.jar"
@@ -100,7 +114,27 @@ class VersionManager(private val ctx: Context) {
             onProgress("Библиотеки ($done/${libs.size})", done, libs.size.toLong())
         }
 
-        // 3. Ассеты
+        // 3. Нативники (классификаторы под текущий ABI, если есть в версии)
+        val natives = collectNatives(vj)
+        if (natives.isNotEmpty()) {
+            var nd = 0L
+            onProgress("Нативники", 0, natives.size.toLong())
+            for (lib in natives) {
+                if (InstallCancel.requested) throw LauncherException("Установка отменена", id)
+                val classifier = lib.natives?.values?.firstOrNull() ?: continue
+                val art = lib.downloads?.classifiers?.get(classifier) ?: continue
+                if (art.url.isBlank()) continue
+                val parts = lib.name.split(":")
+                if (parts.size < 3) continue
+                val path = "${parts[0].replace('.', '/')}/${parts[1]}/${parts[2]}/${parts[1]}-${parts[2]}-$classifier.jar"
+                val dest = File(Storage.natives(ctx, id), path)
+                Net.downloadFile(art.url, dest, art.sha1, art.size)
+                nd++
+                onProgress("Нативники ($nd/${natives.size})", nd, natives.size.toLong())
+            }
+        }
+
+        // 4. Ассеты
         vj.assetIndex?.let { ai ->
             val indexFile = File(Storage.assets(ctx), "indexes/${ai.id}.json")
             Net.downloadFile(ai.url, indexFile, ai.sha1.ifBlank { null })
@@ -110,6 +144,7 @@ class VersionManager(private val ctx: Context) {
             val totalBytes = objs.values.sumOf { it.size }
             onProgress("Ресурсы игры", 0, totalBytes)
             for ((_, obj) in objs) {
+                if (InstallCancel.requested) throw LauncherException("Установка отменена", id)
                 val sub = obj.hash.substring(0, 2)
                 val dest = File(Storage.assets(ctx), "objects/$sub/${obj.hash}")
                 Net.downloadFile("$ASSET_URL/$sub/${obj.hash}", dest, obj.hash, obj.size) { d, t ->
@@ -119,19 +154,37 @@ class VersionManager(private val ctx: Context) {
             }
         }
 
-        // Проверка места перед стартом — уже сделана по факту, но зафиксируем размер
         onProgress("Готово", 1, 1)
     }
 
-    /** Все библиотеки с учётом правил ОС (оставляем linux + без правил) */
+    /** Все библиотеки с учётом правил ОС (оставляем linux + без правил + без features-ограничений) */
     fun allLibraries(vj: VersionJson): List<Library> =
         vj.libraries.filter { lib ->
-            val rules = lib.rules ?: return@filter true
-            // без os-правил — разрешено; с правилами: разрешено, если os.name не задан (общее) или linux
-            val osRules = rules.filter { it.os?.name != null }
-            if (osRules.isEmpty()) return@filter true
-            osRules.any { it.action == "allow" && (it.os?.name == "linux" || it.os?.name == null) }
+            rulesAllow(lib.rules)
         }
+
+    /** Найти классификатор нативников под текущее устройство (android arm64 → linux-arm64, ...) */
+    private fun collectNatives(vj: VersionJson): List<Library> =
+        vj.libraries.filter { lib ->
+            lib.natives != null && rulesAllow(lib.rules)
+        }
+
+    /** Правила Mojang: последнее подходящее правило побеждает; без правил — allow. */
+    private fun rulesAllow(rules: List<Rule>?): Boolean {
+        if (rules.isNullOrEmpty()) return true
+        var allow = true
+        for (rule in rules) {
+            val osMatch = rule.os?.name == null || rule.os?.name == "linux" || rule.os?.name == "android"
+            val featuresMatch = rule.features?.isNullOrEmpty() != false || featuresSatisfied(rule.features)
+            if (osMatch && featuresMatch) {
+                allow = rule.action == "allow"
+            }
+        }
+        return allow
+    }
+
+    /** features в правилах (напр. is_demo_user). У нас нет демо-режима — считаем удовлетворённым. */
+    private fun featuresSatisfied(features: Map<String, Boolean>): Boolean = true
 
     fun freeSpaceText(): String {
         val free = Storage.freeBytes(ctx)

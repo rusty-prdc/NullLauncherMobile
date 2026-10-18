@@ -351,7 +351,7 @@ private fun JavaRuntimeCard(app: NullApp) {
     var error by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
-        javaPath = app.settings.javaPathValue()
+        javaPath = app.settings.currentJavaPath()
             ?: org.nulllauncher.mobile.data.runtime.JreInstaller.installedJava(app)
     }
 
@@ -408,7 +408,7 @@ private fun JavaRuntimeCard(app: NullApp) {
                             installing = true
                             error = null
                             try {
-                                val path = org.nulllauncher.mobile.data.runtime.JreInstaller.install(app) { st, done, total ->
+                                val path = org.nulllauncher.mobile.data.runtime.JreInstaller.install(app, 17) { st, done, total ->
                                     stage = st
                                     progress = if (total > 0) done.toFloat() / total else -1f
                                 }
@@ -437,7 +437,7 @@ private fun JavaRuntimeCard(app: NullApp) {
                     onClick = {
                         scope.launch {
                             try {
-                                org.nulllauncher.mobile.data.runtime.JreInstaller.install(app).let {
+                                org.nulllauncher.mobile.data.runtime.JreInstaller.install(app, 17).let {
                                     app.settings.setJavaPath(it)
                                     javaPath = it
                                 }

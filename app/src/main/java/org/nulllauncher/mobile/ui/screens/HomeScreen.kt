@@ -85,7 +85,7 @@ fun HomeScreen(app: NullApp, nav: NavController) {
     var selectedId by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) {
         instances = app.instances.list()
-        val saved = app.settings.lastInstanceIdValue()
+        val saved = app.settings.currentLastInstanceId()
         selectedId = instances.firstOrNull { it.id == saved }?.id
             ?: instances.firstOrNull()?.id
     }
@@ -104,7 +104,7 @@ fun HomeScreen(app: NullApp, nav: NavController) {
         scope.launch {
             app.settings.setLastInstance(inst.id)
             app.instances.markPlayed(inst.id)
-            app.launcher.start(inst, account, app.settings.javaPathValue()) { l -> app.appendLog(l) }
+            app.launcher.start(inst, account, app.settings.currentJavaPath()) { l -> app.appendLog(l) }
             instances = app.instances.list()
         }
     }

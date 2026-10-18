@@ -86,7 +86,8 @@ class LaunchService(private val ctx: Context) {
             }
 
             _state.value = LaunchState.Preparing("Сборка аргументов")
-            val javaExe = resolveOrInstallJava(javaPath, onLog)
+            val requiredJava = VersionManager.requiredJavaMajor(vj)
+            val javaExe = resolveOrInstallJava(javaPath, requiredJava, onLog)
 
             val classpath = buildClasspath(vj, baseVj)
             val nativesDir = Storage.natives(ctx, versionId)
@@ -136,6 +137,7 @@ class LaunchService(private val ctx: Context) {
                 .redirectErrorStream(true)
             val proc = pb.start()
             process = proc
+            _state.value = LaunchState.Running(0)
 
             // лог вывода игры — в файл и колбэк
             val logFile = File(Storage.logs(ctx), "game-${System.currentTimeMillis()}.log")
@@ -149,12 +151,15 @@ class LaunchService(private val ctx: Context) {
             logFile.writeText(sb.toString())
 
             val code = proc.waitFor()
+            process = null
             _state.value = if (code == 0) LaunchState.Stopped
             else LaunchState.Failed("Игра завершилась с ошибкой (код $code)", "Лог: ${logFile.name}")
         } catch (e: LauncherException) {
+            process = null
             _state.value = LaunchState.Failed(e.title, e.details)
             Log.e(TAG, "launch failed: ${e.title} ${e.details}", e)
         } catch (e: Exception) {
+            process = null
             _state.value = LaunchState.Failed("Сбой запуска", e.message ?: e.javaClass.simpleName)
             Log.e(TAG, "launch failed", e)
         }
@@ -179,23 +184,18 @@ class LaunchService(private val ctx: Context) {
      * Путь к java: из настроек → авто-поиск в runtimes/ → **авто-установка**.
      * JRE скачивается из публичных сборок OpenJDK для Android с прогрессом на главной.
      */
-    private suspend fun resolveOrInstallJava(javaPath: String?, onLog: ((String) -> Unit)?): String {
+    private suspend fun resolveOrInstallJava(javaPath: String?, requiredMajor: Int, onLog: ((String) -> Unit)?): String {
         resolveJava(javaPath)?.let { return it }
 
-        val app = ctx.applicationContext as? org.nulllauncher.mobile.NullApp
-            ?: throw LauncherException(
-                "Java-окружение не найдено",
-                "Установи Java Runtime в Настройках → Java Runtime",
-            )
-
-        onLog?.invoke("Java не найдена — скачиваю Java 17 для Android…")
-        val path = JreInstaller.install(app) { stage, done, total ->
+        val app = org.nulllauncher.mobile.NullApp.instance
+        onLog?.invoke("Java не найдена — скачиваю Java $requiredMajor для Android…")
+        val path = JreInstaller.install(ctx, requiredMajor) { stage, done, total ->
             app.installProgress.value = org.nulllauncher.mobile.InstallProgress(stage, done, total)
             _state.value = LaunchState.Preparing(stage)
         }
         app.installProgress.value = null
         app.settings.setJavaPath(path) // запоминаем, чтобы больше не спрашивать
-        onLog?.invoke("Java 17 установлена: $path")
+        onLog?.invoke("Java $requiredMajor установлена: $path")
         return path
     }
 
