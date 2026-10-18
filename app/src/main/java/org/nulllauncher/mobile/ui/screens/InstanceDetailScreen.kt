@@ -184,6 +184,13 @@ fun InstanceDetailScreen(app: NullApp, nav: NavController, instanceId: String) {
                             }
                         }
                         Spacer(Modifier.height(12.dp))
+                        OutlinedButton(
+                            onClick = { nav.navigate("touch/${inst.id}") },
+                            modifier = Modifier.fillMaxWidth().height(42.dp),
+                        ) {
+                            Text("Управление — раскладка кнопок (бесплатно)", fontSize = 12.5.sp, color = Acc2)
+                        }
+                        Spacer(Modifier.height(10.dp))
                         Button(
                             onClick = { launch() },
                             modifier = Modifier.fillMaxWidth().height(50.dp),

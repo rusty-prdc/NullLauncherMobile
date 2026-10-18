@@ -53,6 +53,7 @@ import org.nulllauncher.mobile.ui.screens.LogsScreen
 import org.nulllauncher.mobile.ui.screens.PrivacyScreen
 import org.nulllauncher.mobile.ui.screens.ProfileScreen
 import org.nulllauncher.mobile.ui.screens.SubscriptionScreen
+import org.nulllauncher.mobile.ui.screens.TouchEditorScreen
 import org.nulllauncher.mobile.ui.screens.VersionsScreen
 import org.nulllauncher.mobile.data.instances.Instance
 import org.nulllauncher.mobile.ui.theme.Acc
@@ -153,6 +154,12 @@ private fun MainNav() {
                 composable("subscription") { SubscriptionScreen(app, nav, app.billing) }
                 composable("ai") { AIScreen(app, nav) }
                 composable("ai_chat") { AiChatScreen(app, nav) }
+                composable(
+                    "touch/{instanceId}",
+                    arguments = listOf(navArgument("instanceId") { type = NavType.StringType }),
+                ) { back ->
+                    TouchEditorScreen(app, nav, back.arguments?.getString("instanceId") ?: return@composable)
+                }
                 composable("create_instance") {
                     InstanceCreationWizard(app, nav) { inst: Instance ->
                         nav.popBackStack()
