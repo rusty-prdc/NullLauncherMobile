@@ -28,6 +28,7 @@ class SettingsRepository(private val ctx: Context) {
         val GUI_SCALE = intPreferencesKey("gui_scale")             // 0 = авто
         val LAST_INSTANCE = stringPreferencesKey("last_instance")
         val SNAPSHOTS = booleanPreferencesKey("snapshots")
+        val YANDEX_TOKEN = stringPreferencesKey("yandex_token")
     }
 
     val memoryMb: Flow<Int> = ctx.ds.data.map { it[K.MEMORY_MB] ?: 2048 }
@@ -38,6 +39,7 @@ class SettingsRepository(private val ctx: Context) {
     val guiScale: Flow<Int> = ctx.ds.data.map { it[K.GUI_SCALE] ?: 0 }
     val lastInstanceId: Flow<String?> = ctx.ds.data.map { it[K.LAST_INSTANCE] }
     val showSnapshots: Flow<Boolean> = ctx.ds.data.map { it[K.SNAPSHOTS] ?: false }
+    val yandexToken: Flow<String?> = ctx.ds.data.map { it[K.YANDEX_TOKEN] }
 
     suspend fun setMemoryMb(v: Int) = ctx.ds.edit { p ->
         p[K.MEMORY_MB] = v.coerceIn(minMemoryMb(), maxMemoryMb())
@@ -53,6 +55,12 @@ class SettingsRepository(private val ctx: Context) {
         if (v != null) p[K.LAST_INSTANCE] = v else p.remove(K.LAST_INSTANCE)
     }
     suspend fun setShowSnapshots(v: Boolean) = ctx.ds.edit { it[K.SNAPSHOTS] = v }
+    suspend fun setYandexToken(v: String?) = ctx.ds.edit { p ->
+        if (v != null) p[K.YANDEX_TOKEN] = v else p.remove(K.YANDEX_TOKEN)
+    }
+
+    /** Токен Яндекс Диска для облачных бэкапов */
+    suspend fun currentYandexToken(): String? = yandexToken.first()
 
     /** Минимум памяти для JVM в МБ */
     fun minMemoryMb(): Int = 512

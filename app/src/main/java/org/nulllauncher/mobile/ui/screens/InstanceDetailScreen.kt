@@ -343,6 +343,12 @@ fun InstanceDetailScreen(app: NullApp, nav: NavController, instanceId: String) {
                 }
             }
 
+            // ---------- облачные бэкапы (Premium) ----------
+            item {
+                Spacer(Modifier.height(6.dp))
+                CloudBackupSection(app = app, instanceId = inst.id)
+            }
+
             // ---------- заголовок модов ----------
             item {
                 Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
