@@ -10,8 +10,10 @@ import kotlinx.serialization.decodeFromString
 import org.nulllauncher.mobile.core.LauncherException
 import org.nulllauncher.mobile.core.Net
 import org.nulllauncher.mobile.core.Storage
+import org.nulllauncher.mobile.core.TarXz
 import org.nulllauncher.mobile.data.accounts.Account
 import org.nulllauncher.mobile.data.instances.Instance
+import org.nulllauncher.mobile.data.runtime.JreInstaller
 import org.nulllauncher.mobile.data.versions.VersionJson
 import org.nulllauncher.mobile.data.versions.VersionManager
 import java.io.File
@@ -84,11 +86,7 @@ class LaunchService(private val ctx: Context) {
             }
 
             _state.value = LaunchState.Preparing("Сборка аргументов")
-            val javaExe = resolveJava(javaPath)
-                ?: throw LauncherException(
-                    "Java-окружение не найдено",
-                    "Установи совместимый Java Runtime для Android и укажи его в Настройках → Java Runtime"
-                )
+            val javaExe = resolveOrInstallJava(javaPath, onLog)
 
             val classpath = buildClasspath(vj, baseVj)
             val nativesDir = Storage.natives(ctx, versionId)
@@ -177,6 +175,30 @@ class LaunchService(private val ctx: Context) {
 
     // ---------- internals ----------
 
+    /**
+     * Путь к java: из настроек → авто-поиск в runtimes/ → **авто-установка** (как в Pojav).
+     * JRE скачивается из официальных сборок PojavLauncherTeam с прогрессом на главной.
+     */
+    private suspend fun resolveOrInstallJava(javaPath: String?, onLog: ((String) -> Unit)?): String {
+        resolveJava(javaPath)?.let { return it }
+
+        val app = ctx.applicationContext as? org.nulllauncher.mobile.NullApp
+            ?: throw LauncherException(
+                "Java-окружение не найдено",
+                "Установи Java Runtime в Настройках → Java Runtime",
+            )
+
+        onLog?.invoke("Java не найдена — скачиваю Java 17 для Android (Pojav build)…")
+        val path = JreInstaller.install(app) { stage, done, total ->
+            app.installProgress.value = org.nulllauncher.mobile.InstallProgress(stage, done, total)
+            _state.value = LaunchState.Preparing(stage)
+        }
+        app.installProgress.value = null
+        app.settings.setJavaPath(path) // запоминаем, чтобы больше не спрашивать
+        onLog?.invoke("Java 17 установлена: $path")
+        return path
+    }
+
     /** Путь к java: из настроек, либо авто-поиск в runtimes/ */
     private fun resolveJava(javaPath: String?): String? {
         javaPath?.let { if (File(it).canExecute() || File(it).exists()) return it }
@@ -186,6 +208,8 @@ class LaunchService(private val ctx: Context) {
                 val f = File(dir, rel)
                 if (f.exists()) return f.absolutePath
             }
+            // структура jre17-<arch>/bin/java (распаковка TarXz)
+            TarXz.findJavaBinary(dir)?.let { return it.absolutePath }
         }
         return null
     }

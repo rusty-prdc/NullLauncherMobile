@@ -20,6 +20,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
@@ -335,14 +336,23 @@ fun ProfileScreen(app: NullApp, nav: NavController) {
     }
 }
 
-/** Карточка Java Runtime: показывает найденный, ссылка на скачивание Temurin */
+/**
+ * Карточка Java Runtime: авто-установка одной кнопкой (как в Pojav) —
+ * качаем OpenJDK 17 для Android из официальных сборок PojavLauncherTeam
+ * и распаковываем в runtimes/. Прогресс прямо в карточке.
+ */
 @Composable
 private fun JavaRuntimeCard(app: NullApp) {
-    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var javaPath by remember { mutableStateOf<String?>(null) }
+    var installing by remember { mutableStateOf(false) }
+    var stage by remember { mutableStateOf("") }
+    var progress by remember { mutableStateOf(0f) } // -1 = неизвестный размер
+    var error by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
         javaPath = app.settings.javaPathValue()
+            ?: org.nulllauncher.mobile.data.runtime.JreInstaller.installedJava(app)
     }
 
     Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
@@ -353,34 +363,98 @@ private fun JavaRuntimeCard(app: NullApp) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.CheckCircle, null, tint = Ok, modifier = Modifier.size(15.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text(javaPath!!, fontSize = 11.sp, color = Ok, modifier = Modifier.weight(1f))
+                    Text(
+                        "Установлена (OpenJDK 17 для Android)",
+                        fontSize = 11.5.sp, color = Ok, modifier = Modifier.weight(1f),
+                    )
                 }
-            } else {
+                Spacer(Modifier.height(2.dp))
+                Text(javaPath!!, fontSize = 10.sp, color = Mute, maxLines = 1)
+            } else if (!installing) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.Warning, null, tint = Warn, modifier = Modifier.size(15.dp))
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        "Не найден. Для запуска Java-игры нужен JRE 17/21 (aarch64).",
+                        "Не установлена. Нужна для запуска игры — ставится автоматически.",
                         fontSize = 11.sp, color = Warn, modifier = Modifier.weight(1f),
                     )
                 }
             }
+
+            if (installing) {
+                Spacer(Modifier.height(10.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(stage, fontSize = 11.sp, color = Acc2, modifier = Modifier.weight(1f))
+                    if (progress >= 0) Text("${(progress * 100).toInt()}%", fontSize = 11.sp, color = Acc2)
+                }
+                Spacer(Modifier.height(6.dp))
+                LinearProgressIndicator(
+                    progress = { progress.coerceIn(0f, 1f) },
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp)),
+                )
+            }
+
+            error?.let {
+                Spacer(Modifier.height(6.dp))
+                Text(it, fontSize = 11.sp, color = Err, maxLines = 3)
+            }
+
             Spacer(Modifier.height(10.dp))
-            OutlinedButton(
-                onClick = {
-                    val intent = Intent(
-                        Intent.ACTION_VIEW,
-                        Uri.parse("https://adoptium.net/temurin/releases/?version=21&os=linux&arch=aarch64"),
-                    )
-                    context.startActivity(intent)
-                },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Скачать JRE 21 (Adoptium)", fontSize = 12.sp, color = Acc2)
+            if (javaPath == null) {
+                Button(
+                    onClick = {
+                        if (installing) return@Button
+                        scope.launch {
+                            installing = true
+                            error = null
+                            try {
+                                val path = org.nulllauncher.mobile.data.runtime.JreInstaller.install(app) { st, done, total ->
+                                    stage = st
+                                    progress = if (total > 0) done.toFloat() / total else -1f
+                                }
+                                app.settings.setJavaPath(path)
+                                javaPath = path
+                            } catch (e: Exception) {
+                                error = e.message ?: "Не удалось скачать Java"
+                            }
+                            installing = false
+                        }
+                    },
+                    enabled = !installing,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Acc),
+                ) {
+                    if (installing) {
+                        Text("Установка…", fontSize = 13.sp, color = Color.White)
+                    } else {
+                        Icon(Icons.Filled.Download, null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Установить Java 17 (автоматически)", fontSize = 13.sp, color = Color.White)
+                    }
+                }
+            } else {
+                OutlinedButton(
+                    onClick = {
+                        scope.launch {
+                            try {
+                                org.nulllauncher.mobile.data.runtime.JreInstaller.install(app).let {
+                                    app.settings.setJavaPath(it)
+                                    javaPath = it
+                                }
+                            } catch (e: Exception) {
+                                error = e.message ?: "Ошибка переустановки"
+                            }
+                        }
+                    },
+                    enabled = !installing,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Переустановить", fontSize = 12.sp, color = Acc2)
+                }
             }
             Spacer(Modifier.height(6.dp))
             Text(
-                "После скачивания распакуй в папку приложения runtimes/ или укажи путь вручную.",
+                "Источник: официальные сборки PojavLauncherTeam (OpenJDK 17, aarch64/armeabi/x86_64). Архив .tar.xz распаковывается в runtimes/ автоматически.",
                 fontSize = 10.5.sp, color = Mute,
             )
         }

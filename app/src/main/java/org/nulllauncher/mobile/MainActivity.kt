@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
@@ -141,11 +142,13 @@ private fun MainNav() {
                 }
             }
         }
-        val route = nav.currentBackStackEntry?.destination?.route ?: "home"
+        // реактивный маршрут: без этого подсветка вкладки не обновляется
+        val route by nav.currentBackStackEntryAsState()
+        val currentRoute = route?.destination?.route ?: "home"
         // На детальных экранах нижняя панель скрыта — они закрываются кнопкой «назад»
-        if (route in setOf("home", "instances", "versions", "catalog", "profile")) {
+        if (currentRoute in setOf("home", "instances", "versions", "catalog", "profile")) {
             BottomBar(
-                current = route,
+                current = currentRoute,
                 onSelect = { r ->
                     nav.navigate(r) {
                         popUpTo("home") { saveState = true }
