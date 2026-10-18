@@ -1,5 +1,6 @@
 package org.nulllauncher.mobile.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -51,6 +52,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -58,6 +60,7 @@ import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 import org.nulllauncher.mobile.InstallProgress
 import org.nulllauncher.mobile.NullApp
+import org.nulllauncher.mobile.R
 import org.nulllauncher.mobile.core.LauncherException
 import org.nulllauncher.mobile.core.Storage
 import org.nulllauncher.mobile.data.billing.SubscriptionManager
@@ -363,7 +366,15 @@ private fun LoaderStep(loader: String, onSelect: (String) -> Unit) {
                         .clickable { onSelect(id) },
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(label, fontSize = 13.sp, color = if (selected) Acc2 else Mute, fontWeight = FontWeight.SemiBold)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                        Image(
+                            painter = painterResource(loaderLogo(id)),
+                            contentDescription = null,
+                            modifier = Modifier.size(26.dp).clip(RoundedCornerShape(7.dp)),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(label, fontSize = 13.sp, color = if (selected) Acc2 else Mute, fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
         }
@@ -610,4 +621,12 @@ private fun loaderLabel(loader: String): String = when (loader) {
     "neoforge" -> "NeoForge"
     "quilt" -> "Quilt"
     else -> "Ваниль"
+}
+
+private fun loaderLogo(loader: String): Int = when (loader) {
+    "fabric" -> R.drawable.loader_fabric
+    "forge" -> R.drawable.loader_forge
+    "neoforge" -> R.drawable.loader_neoforge
+    "quilt" -> R.drawable.loader_quilt
+    else -> R.drawable.loader_vanilla
 }
