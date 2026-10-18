@@ -48,6 +48,7 @@ import org.nulllauncher.mobile.ui.screens.InstanceCreationWizard
 import org.nulllauncher.mobile.ui.screens.InstanceDetailScreen
 import org.nulllauncher.mobile.ui.screens.InstancesScreen
 import org.nulllauncher.mobile.ui.screens.LogsScreen
+import org.nulllauncher.mobile.ui.screens.PrivacyScreen
 import org.nulllauncher.mobile.ui.screens.ProfileScreen
 import org.nulllauncher.mobile.ui.screens.SubscriptionScreen
 import org.nulllauncher.mobile.ui.screens.VersionsScreen
@@ -154,6 +155,7 @@ private fun MainNav() {
                     }
                 }
                 composable("logs") { LogsScreen(app, nav) }
+                composable("privacy") { PrivacyScreen(nav) }
                 composable(
                     "instance/{instanceId}",
                     arguments = listOf(navArgument("instanceId") { type = NavType.StringType }),
