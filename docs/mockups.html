@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nullLauncher Mobile — макеты экранов</title>
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800;900&family=Unbounded:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0B0B10;
+  --card:#14141C;
+  --card2:#1B1B26;
+  --line:rgba(255,255,255,.07);
+  --txt:#F2F2F7;
+  --mute:#9A9AB0;
+  --acc:#8B5CF6;
+  --acc2:#4F8CFF;
+  --grad:linear-gradient(135deg,#8B5CF6 0%,#4F8CFF 100%);
+  --ok:#3ECF8E;
+  --warn:#FFB020;
+  --err:#FF5C5C;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{
+  background:#08080C;
+  font-family:'Golos Text',system-ui,sans-serif;
+  color:var(--txt);
+  padding:36px 28px 60px;
+}
+h1{font-family:'Unbounded',sans-serif;font-size:26px;margin-bottom:6px}
+.sub{color:var(--mute);margin-bottom:34px;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:34px;justify-content:center}
+.shot{width:330px}
+.cap{margin-top:12px;text-align:center}
+.cap b{display:block;font-size:15px}
+.cap span{color:var(--mute);font-size:12.5px}
+
+/* ============ телефон ============ */
+.phone{
+  width:330px;height:700px;border-radius:38px;
+  background:var(--bg);
+  border:1px solid rgba(255,255,255,.09);
+  box-shadow:0 24px 60px rgba(0,0,0,.6), inset 0 0 0 6px #000;
+  overflow:hidden;position:relative;display:flex;flex-direction:column;
+}
+.notch{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:104px;height:22px;border-radius:12px;background:#000;z-index:50}
+.statusbar{display:flex;justify-content:space-between;align-items:center;padding:12px 22px 4px;font-size:11.5px;color:var(--mute);flex-shrink:0}
+.statusbar .icons{display:flex;gap:5px;align-items:center}
+
+/* ============ шапка ============ */
+.appbar{display:flex;align-items:center;gap:10px;padding:10px 16px;flex-shrink:0}
+.avatar{width:38px;height:38px;border-radius:12px;background:var(--card2);border:1px solid var(--line);display:grid;place-items:center;font-size:20px}
+.appbar .who{flex:1;min-width:0}
+.appbar .who b{display:block;font-size:14px}
+.appbar .who span{font-size:11px;color:var(--mute)}
+.ico-btn{width:38px;height:38px;border-radius:12px;background:var(--card);border:1px solid var(--line);display:grid;place-items:center;color:var(--mute);flex-shrink:0}
+
+.body{flex:1;overflow:hidden;padding:4px 16px 0;display:flex;flex-direction:column;gap:12px}
+.ttl{font-family:'Unbounded',sans-serif;font-size:19px;margin:2px 0 4px}
+
+/* ============ карточки ============ */
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px}
+.card.grad{background:linear-gradient(140deg,#221A3E 0%,#131325 55%,#101423 100%);border-color:rgba(139,92,246,.35)}
+.play-btn{
+  width:100%;border:0;border-radius:18px;padding:16px;font-family:'Unbounded',sans-serif;
+  font-size:17px;font-weight:700;color:#fff;background:var(--grad);cursor:pointer;
+  box-shadow:0 10px 28px rgba(124,92,255,.45);display:flex;align-items:center;justify-content:center;gap:10px;
+}
+.play-btn.off{background:linear-gradient(135deg,#3A3A4A,#2A2A38);box-shadow:none;color:var(--mute)}
+.meta{display:flex;justify-content:space-between;font-size:11.5px;color:var(--mute);margin-top:12px}
+
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--line);
+  border-radius:999px;padding:6px 12px;font-size:11.5px;color:var(--txt)}
+.chip.acc{background:rgba(139,92,246,.16);border-color:rgba(139,92,246,.4);color:#C4B0FF}
+.chip.ok{background:rgba(62,207,142,.13);border-color:rgba(62,207,142,.35);color:var(--ok)}
+.chip.warn{background:rgba(255,176,32,.13);border-color:rgba(255,176,32,.35);color:var(--warn)}
+
+.list{display:flex;flex-direction:column;gap:10px;overflow:hidden}
+.item{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:12px 14px;display:flex;align-items:center;gap:12px}
+.item .cover{width:46px;height:46px;border-radius:13px;background:var(--card2);display:grid;place-items:center;font-size:22px;flex-shrink:0}
+.item .t{flex:1;min-width:0}
+.item .t b{display:block;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .t span{font-size:11px;color:var(--mute)}
+.item .go{color:var(--mute);font-size:18px}
+
+/* ============ прогресс ============ */
+.prog{height:8px;border-radius:6px;background:var(--card2);overflow:hidden;margin-top:10px}
+.prog i{display:block;height:100%;border-radius:6px;background:var(--grad)}
+.prog-txt{display:flex;justify-content:space-between;font-size:11px;color:var(--mute);margin-top:6px}
+
+/* ============ поиск / фильтры ============ */
+.search{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);
+  border-radius:16px;padding:12px 14px;color:var(--mute);font-size:13px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ============ нижняя навигация ============ */
+.tabbar{
+  flex-shrink:0;display:flex;justify-content:space-around;align-items:center;
+  padding:10px 8px 16px;background:rgba(15,15,22,.92);border-top:1px solid var(--line);
+}
+.tab{display:flex;flex-direction:column;align-items:center;gap:4px;color:#5B5B70;font-size:10px;font-weight:600}
+.tab.on{color:#C4B0FF}
+.tab svg{width:23px;height:23px}
+.home-ind{width:118px;height:5px;border-radius:3px;background:#2A2A38;margin:0 auto 8px}
+
+/* ============ сплэш ============ */
+.splash{flex:1;display:grid;place-items:center;background:radial-gradient(60% 45% at 50% 42%, rgba(124,92,255,.22), transparent 70%),var(--bg)}
+.logo{width:96px;height:96px;border-radius:26px;background:var(--grad);display:grid;place-items:center;
+  font-family:'Unbounded';font-size:52px;font-weight:700;color:#fff;
+  box-shadow:0 20px 50px rgba(124,92,255,.5)}
+.splash .nm{font-family:'Unbounded';font-size:20px;margin-top:22px}
+.splash .ver{color:var(--mute);font-size:12px;margin-top:6px}
+.dots{display:flex;gap:7px;margin-top:30px}
+.dots i{width:8px;height:8px;border-radius:50%;background:var(--acc);opacity:.35;animation:bl 1.2s infinite}
+.dots i:nth-child(2){animation-delay:.2s}.dots i:nth-child(3){animation-delay:.4s}
+@keyframes bl{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.1)}}
+
+/* ============ слайдер памяти ============ */
+.slider{height:8px;border-radius:6px;background:var(--card2);position:relative;margin:16px 0 8px}
+.slider i{position:absolute;left:0;top:0;bottom:0;width:46%;border-radius:6px;background:var(--grad)}
+.slider b{position:absolute;top:50%;left:46%;transform:translate(-50%,-50%);width:22px;height:22px;border-radius:50%;
+  background:#fff;border:4px solid var(--acc);box-shadow:0 3px 10px rgba(0,0,0,.5)}
+.set-row{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.set-row:last-child{border:0}
+.set-row span{color:var(--mute);font-size:12px}
+
+.switch{width:44px;height:26px;border-radius:14px;background:var(--acc);position:relative;flex-shrink:0}
+.switch:after{content:'';position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:#fff}
+.switch.off{background:#33333F}.switch.off:after{right:auto;left:3px}
+
+/* ============ тач-оверлей ============ */
+.game{flex:1;position:relative;background:
+  linear-gradient(180deg,#7EC8F0 0%,#9ADCF7 45%,#5B8B3A 46%,#3E6B28 100%);overflow:hidden}
+.joy{position:absolute;left:26px;bottom:36px;width:104px;height:104px;border-radius:50%;
+  background:rgba(0,0,0,.28);border:2px solid rgba(255,255,255,.5)}
+.joy:after{content:'';position:absolute;top:32px;left:32px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.75)}
+.gbtn{position:absolute;width:56px;height:56px;border-radius:50%;background:rgba(0,0,0,.32);
+  border:2px solid rgba(255,255,255,.5);display:grid;place-items:center;font-size:11px;font-weight:800;color:#fff}
+.cross{position:absolute;left:0;right:0;top:46%;height:3px;background:rgba(255,255,255,.85)}
+.cross:after{content:'';position:absolute;left:50%;top:-14px;width:3px;height:31px;background:rgba(255,255,255,.85);transform:translateX(-50%)}
+.hotbar{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:flex;gap:3px;
+  background:rgba(0,0,0,.35);padding:3px;border-radius:6px}
+.hotbar i{width:26px;height:26px;border:2px solid rgba(255,255,255,.35);border-radius:4px}
+.hotbar i:first-child{border-color:#fff}
+
+.ft-note{max-width:900px;margin:44px auto 0;color:var(--mute);font-size:13px;text-align:center;line-height:1.7}
+</style>
+</head>
+<body>
+
+<h1>nullLauncher Mobile — макеты экранов</h1>
+<p class="sub">Тёмная тема, чёрный/графит + фиолетово-синие акценты · 390×844 · все экраны из ТЗ</p>
+
+<div class="row">
+
+  <!-- ==================== 1. СПЛАШ ==================== -->
+  <div class="shot">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>12:34</span><span class="icons">📶 🔋</span></div>
+      <div class="splash">
+        <div style="text-align:center">
+          <div class="logo">N</div>
+          <div class="nm">nullLauncher</div>
+          <div class="ver">Mobile · 0.1.0</div>
+          <div class="dots"><i></i><i></i><i></i></div>
+        </div>
+      </div>
+    </div>
+    <div class="cap"><b>1. Загрузка</b><span>логотип + пульсация</span></div>
+  </div>
+
+  <!-- ==================== 2. ГЛАВНАЯ (установлено) ==================== -->
+  <div class="shot">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>12:34</span><span class="icons">📶 🔋</span></div>
+      <div class="appbar">
+        <div class="avatar">🧑‍🌾</div>
+        <div class="who"><b>Steve</b><span>Microsoft · аккаунт активен</span></div>
+        <div class="ico-btn">⚙️</div>
+      </div>
+      <div class="body">
+        <div class="card grad">
+          <div class="chips" style="margin-bottom:12px">
+            <span class="chip acc">Fabric 1.21.1</span>
+            <span class="chip">4 ГБ</span>
+          </div>
+          <button class="play-btn">▶ Играть</button>
+          <div class="meta"><span>Последний запуск: вчера, 21:40</span><span>8 модов</span></div>
+        </div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;font-size:12px"><b style="font-size:13px">Установка компонентов</b><span style="color:var(--acc2)">76%</span></div>
+          <div class="prog"><i style="width:76%"></i></div>
+          <div class="prog-txt"><span>assets/objects · 3 214 / 4 219</span><span>12,4 МБ/с</span></div>
+        </div>
+        <div style="font-size:12px;color:var(--mute);margin-top:2px">Мои сборки</div>
+        <div class="list">
+          <div class="item"><div class="cover">🌿</div><div class="t"><b>Homestead</b><span>Fabric 1.20.1 · 142 мода · 1,2 ГБ</span></div><div class="go">›</div></div>
+          <div class="item"><div class="cover">⚔️</div><div class="t"><b>Анархия</b><span>Forge 1.16.5 · 67 модов · 800 МБ</span></div><div class="go">›</div></div>
+        </div>
+      </div>
+      <div class="tabbar">
+        <div class="tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5 12 3l9 7.5V21H3z"/></svg>Главная</div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="14" width="18" height="6" rx="2"/></svg>Сборки</div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m10 8 6 4-6 4z"/></svg>Каталог</div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Профиль</div>
+      </div>
+      <div class="home-ind"></div>
+    </div>
+    <div class="cap"><b>2. Главная</b><span>играть + прогресс установки + сборки</span></div>
+  </div>
+
+  <!-- ==================== 3. ГЛАВНАЯ (не установлено) ==================== -->
+  <div class="shot">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>12:34</span><span class="icons">📶 🔋</span></div>
+      <div class="appbar">
+        <div class="avatar">🧑‍🌾</div>
+        <div class="who"><b>Steve</b><span>Microsoft · аккаунт активен</span></div>
+        <div class="ico-btn">⚙️</div>
+      </div>
+      <div class="body">
+        <div class="card grad">
+          <div class="chips" style="margin-bottom:12px">
+            <span class="chip warn">Minecraft не установлен</span>
+          </div>
+          <button class="play-btn">⬇ Установить Minecraft</button>
+          <div class="meta"><span>Выбери версию в менеджере</span><span>≈ 620 МБ</span></div>
+        </div>
+        <div style="font-size:12px;color:var(--mute);margin-top:2px">Быстрый переход</div>
+        <div class="list">
+          <div class="item"><div class="cover">📦</div><div class="t"><b>Менеджер версий</b><span>Vanilla · Fabric · Forge · NeoForge · Quilt</span></div><div class="go">›</div></div>
+          <div class="item"><div class="cover">🧩</div><div class="t"><b>Каталог Modrinth</b><span>моды, модпаки, ресурс-паки</span></div><div class="go">›</div></div>
+          <div class="item"><div class="cover">⚙️</div><div class="t"><b>Настройки</b><span>память, Java, графика, сенсорное управление</span></div><div class="go">›</div></div>
+        </div>
+      </div>
+      <div class="tabbar">
+        <div class="tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5 12 3l9 7.5V21H3z"/></svg>Главная</div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="14" width="18" height="6" rx="2"/></svg>Сборки</div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m10 8 6 4-6 4z"/></svg>Каталог</div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Профиль</div>
+      </div>
+      <div class="home-ind"></div>
+    </div>
+    <div class="cap"><b>3. Главная · пустое состояние</b><span>вместо «Играть» — «Установить»</span></div>
+  </div>
+
+  <!-- ==================== 4. МЕНЕДЖЕР ВЕРСИЙ ==================== -->
+  <div class="shot">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>12:34</span><span class="icons">📶 🔋</span></div>
+      <div class="body" style="padding-top:16px">
+        <div class="ttl">Версии</div>
+        <div class="search">🔍 Поиск версии…</div>
+        <div class="chips">
+          <span class="chip acc">Релизы</span>
+          <span class="chip">Снапшоты</span>
+          <span class="chip">Fabric</span>
+          <span class="chip">Forge</span>
+          <span class="chip">NeoForge</span>
+          <span class="chip">Quilt</span>
+        </div>
+        <div class="list" style="overflow:auto">
+          <div class="item"><div class="cover">🟩</div><div class="t"><b>1.21.4</b><span>Релиз · 14 дек 2024</span></div><span class="chip ok">Установлена</span></div>
+          <div class="item"><div class="cover">🟩</div><div class="t"><b>1.21.1 + Fabric</b><span>Релиз · загружчик 0.16.9</span></div><span class="chip ok">Установлена</span></div>
+          <div class="item" style="border-color:rgba(79,140,255,.45)">
+            <div class="cover">🟩</div>
+            <div class="t" style="flex:1">
+              <b>1.20.6</b><span>Релиз · установка…</span>
+              <div class="prog"><i style="width:41%"></i></div>
+              <div class="prog-txt"><span>библиотеки · 38/92</span><span>отмена ✕</span></div>
+            </div>
+          </div>
+          <div class="item"><div class="cover">🧪</div><div class="t"><b>25w03a</b><span>Снапшот · 15 янв 2025</span></div><span class="chip">Установить</span></div>
+          <div class="item"><div class="cover">🟩</div><div class="t"><b>1.20.1 + Forge</b><span>Релиз · загружчик 47.3.0</span></div><span class="chip">Установить</span></div>
+        </div>
+      </div>
+      <div class="tabbar">
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5 12 3l9 7.5V21H3z"/></svg>Главная</div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="14" width="18" height="6" rx="2"/></svg>Сборки</div>
+        <div class="tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m10 8 6 4-6 4z"/></svg>Каталог</div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Профиль</div>
+      </div>
+      <div class="home-ind"></div>
+    </div>
+    <div class="cap"><b>4. Менеджер версий</b><span>фильтры загрузчиков, живая установка</span></div>
+  </div>
+
+  <!-- ==================== 5. СБОРКИ ==================== -->
+  <div class="shot">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>12:34</span><span class="icons">📶 🔋</span></div>
+      <div class="body" style="padding-top:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div class="ttl" style="margin:0">Сборки</div>
+          <div class="ico-btn" style="background:var(--grad);color:#fff;border:0;width:36px;height:36px;font-size:20px">+</div>
+        </div>
+        <div class="list" style="overflow:auto">
+          <div class="item" style="align-items:flex-start;flex-direction:column;gap:10px">
+            <div style="display:flex;gap:12px;align-items:center;width:100%">
+              <div class="cover" style="width:54px;height:54px">🌿</div>
+              <div class="t"><b>Homestead</b><span>Fabric 1.20.1 · 142 мода · 4 ГБ RAM</span></div>
+            </div>
+            <div class="chips" style="width:100%">
+              <span class="chip">✏️ Переименовать</span><span class="chip">🖼 Обложка</span><span class="chip">⧉ Копия</span><span class="chip" style="color:var(--err)">🗑 Удалить</span>
+            </div>
+          </div>
+          <div class="item"><div class="cover">⚔️</div><div class="t"><b>Анархия</b><span>Forge 1.16.5 · 67 модов · 3 ГБ RAM</span></div><div class="go">›</div></div>
+          <div class="item"><div class="cover">🧪</div><div class="t"><b>Тесты снапшота</b><span>Vanilla 25w03a · 2 ГБ RAM</span></div><div class="go">›</div></div>
+          <div class="item"><div class="cover">🏡</div><div class="t"><b>Выживание 1.21</b><span>Vanilla 1.21.4 · без модов · 4 ГБ RAM</span></div><div class="go">›</div></div>
+        </div>
+      </div>
+      <div class="tabbar">
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5 12 3l9 7.5V21H3z"/></svg>Главная</div>
+        <div class="tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="14" width="18" height="6" rx="2"/></svg>Сборки</div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m10 8 6 4-6 4z"/></svg>Каталог</div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Профиль</div>
+      </div>
+      <div class="home-ind"></div>
+    </div>
+    <div class="cap"><b>5. Сборки</b><span>профили, удаление с подтверждением</span></div>
+  </div>
+
+  <!-- ==================== 6. КАТАЛОГ MODRINTH ==================== -->
+  <div class="shot">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>12:34</span><span class="icons">📶 🔋</span></div>
+      <div class="body" style="padding-top:16px">
+        <div class="ttl">Каталог</div>
+        <div class="search">🔍 Поиск модов, модпаков…</div>
+        <div class="chips">
+          <span class="chip acc">Моды</span><span class="chip">Модпаки</span><span class="chip">Ресурс-паки</span>
+        </div>
+        <div class="chips">
+          <span class="chip">MC: 1.21.1 ⌄</span><span class="chip">Загрузчик: Fabric ⌄</span>
+        </div>
+        <div class="list" style="overflow:auto">
+          <div class="item"><div class="cover">⚡</div><div class="t"><b>Sodium</b><span>от CaffeineMC · 128,4 млн загрузок</span></div><span class="chip ok">Установлен</span></div>
+          <div class="item"><div class="cover">🔧</div><div class="t"><b>Embeddium</b><span>otnept · 12,1 млн · 1.20.1–1.21.1</span></div><span class="chip acc">Установить</span></div>
+          <div class="item"><div class="cover">🌍</div><div class="t"><b>Distant Horizons</b><span>James Seibel · 8,3 млн · Forge/Fabric</span></div><span class="chip acc">Установить</span></div>
+          <div class="item" style="border-color:rgba(79,140,255,.45)">
+            <div class="cover">📦</div>
+            <div class="t"><b>Homestead</b><span>модпак · 346 файлов · 1,2 ГБ</span>
+              <div class="prog"><i style="width:64%"></i></div>
+              <div class="prog-txt"><span>установка модпака · 221/346</span><span>отмена ✕</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tabbar">
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5 12 3l9 7.5V21H3z"/></svg>Главная</div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="14" width="18" height="6" rx="2"/></svg>Сборки</div>
+        <div class="tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m10 8 6 4-6 4z"/></svg>Каталог</div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Профиль</div>
+      </div>
+      <div class="home-ind"></div>
+    </div>
+    <div class="cap"><b>6. Каталог Modrinth</b><span>поиск, фильтры, установка модпака</span></div>
+  </div>
+
+  <!-- ==================== 7. НАСТРОЙКИ ==================== -->
+  <div class="shot">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>12:34</span><span class="icons">📶 🔋</span></div>
+      <div class="body" style="padding-top:16px">
+        <div class="ttl">Настройки</div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;font-size:13.5px"><b>Оперативная память</b><span style="color:#C4B0FF">3,5 ГБ</span></div>
+          <div class="slider"><i></i><b></b></div>
+          <div class="prog-txt"><span>1 ГБ</span><span>макс. безопасный: 5,3 ГБ (из 7,6)</span></div>
+        </div>
+        <div class="card" style="padding:4px 16px">
+          <div class="set-row"><div><b>Java Runtime</b><br><span>JRE 21 (встроенная)</span></div><span style="color:var(--mute)">›</span></div>
+          <div class="set-row"><div><b>Разрешение рендера</b><br><span>100% · AUTO</span></div><span style="color:var(--mute)">›</span></div>
+          <div class="set-row"><div><b>Полноэкранный режим</b></div><div class="switch"></div></div>
+          <div class="set-row"><div><b>Сенсорное управление</b><br><span>джойстик + прыжок</span></div><div class="switch"></div></div>
+          <div class="set-row"><div><b>Размер GUI</b><br><span>2 (авто)</span></div><span style="color:var(--mute)">›</span></div>
+        </div>
+        <div class="card" style="padding:4px 16px">
+          <div class="set-row"><div><b>Логи запуска</b></div><span style="color:var(--mute)">›</span></div>
+          <div class="set-row"><div><b>Свободное место</b><br><span>занято 2,1 ГБ · свободно 24,8 ГБ</span></div><span class="chip">Очистить</span></div>
+        </div>
+      </div>
+      <div class="tabbar">
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5 12 3l9 7.5V21H3z"/></svg>Главная</div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="14" width="18" height="6" rx="2"/></svg>Сборки</div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m10 8 6 4-6 4z"/></svg>Каталог</div>
+        <div class="tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Профиль</div>
+      </div>
+      <div class="home-ind"></div>
+    </div>
+    <div class="cap"><b>7. Настройки</b><span>память, Java, графика, логи</span></div>
+  </div>
+
+  <!-- ==================== 8. ТАЧ-ОВЕРЛЕЙ ==================== -->
+  <div class="shot">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="game">
+        <div class="cross"></div>
+        <div class="joy"></div>
+        <div class="gbtn" style="right:26px;bottom:110px">ПРЫЖОК</div>
+        <div class="gbtn" style="right:96px;bottom:44px;width:44px;height:44px;font-size:9px">ПРИСЕСТЬ</div>
+        <div class="gbtn" style="right:26px;bottom:44px;width:44px;height:44px;font-size:9px">ДЕЙСТ.</div>
+        <div class="hotbar"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
+    </div>
+    <div class="cap"><b>8. Сенсорное управление</b><span>джойстик, кнопки, свайп камеры</span></div>
+  </div>
+
+</div>
+
+<p class="ft-note">Макеты передают структуру и стиль реального приложения (Jetpack Compose).<br>
+Дальше по ТЗ: аккаунты Microsoft (device-code), установка версий с Mojang-серверов, каталог Modrinth, запуск.</p>
+
+</body>
+</html>
