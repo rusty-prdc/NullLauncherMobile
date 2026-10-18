@@ -20,6 +20,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Science
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -110,69 +112,103 @@ fun VersionsScreen(app: NullApp, nav: NavController) {
             .filter { query.isBlank() || it.id.contains(query, ignoreCase = true) }
 
         LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
-            items(shown) { v ->                val installed = app.versions.isInstalled(v.id)
+            items(shown) { v ->
+                val installed = app.versions.isInstalled(v.id)
                 Card(shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
-                    Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            Modifier.size(42.dp).clip(RoundedCornerShape(12.dp)).background(Card2),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                if (v.type == "release") Icons.Filled.CheckCircle else Icons.Filled.Science,
-                                null,
-                                tint = if (v.type == "release") Ok else Warn,
-                                modifier = Modifier.size(20.dp),
-                            )
-                        }
-                        Spacer(Modifier.width(12.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(v.id, fontWeight = FontWeight.Bold, fontSize = 13.5.sp)
-                            Text(
-                                (if (v.type == "release") "Релиз" else "Снапшот") +
-                                    (if (v.releaseTime.isNotBlank()) " · " + v.releaseTime.take(10) else ""),
-                                fontSize = 11.sp, color = Mute,
-                            )
-                            if (installing == v.id && install != null) {
-                                Spacer(Modifier.height(6.dp))
-                                LinearProgressIndicator(
-                                    progress = { if (install!!.total > 0) (install!!.done.toFloat() / install!!.total).coerceIn(0f, 1f) else 0f },
-                                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp)),
+                    Column(Modifier.padding(12.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                Modifier.size(42.dp).clip(RoundedCornerShape(12.dp)).background(Card2),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    if (v.type == "release") Icons.Filled.CheckCircle else Icons.Filled.Science,
+                                    null,
+                                    tint = if (v.type == "release") Ok else Warn,
+                                    modifier = Modifier.size(20.dp),
                                 )
-                                Spacer(Modifier.height(4.dp))
-                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Text(install!!.stage, fontSize = 10.5.sp, color = Acc2)
-                                    OutlinedButton(onClick = { installing = null; app.installProgress.value = null }) {
-                                        Text("Отмена", fontSize = 11.sp)
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(v.id, fontWeight = FontWeight.Bold, fontSize = 13.5.sp)
+                                Text(
+                                    (if (v.type == "release") "Релиз" else "Снапшот") +
+                                        (if (v.releaseTime.isNotBlank()) " · " + v.releaseTime.take(10) else ""),
+                                    fontSize = 11.sp, color = Mute,
+                                )
+                                if (installing == v.id && install != null) {
+                                    Spacer(Modifier.height(6.dp))
+                                    LinearProgressIndicator(
+                                        progress = { if (install!!.total > 0) (install!!.done.toFloat() / install!!.total).coerceIn(0f, 1f) else 0f },
+                                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp)),
+                                    )
+                                    Spacer(Modifier.height(4.dp))
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text(install!!.stage, fontSize = 10.5.sp, color = Acc2)
+                                        OutlinedButton(onClick = {
+                                            org.nulllauncher.mobile.core.InstallCancel.requested = true
+                                            installing = null
+                                            app.installProgress.value = null
+                                        }) {
+                                            Text("Отмена", fontSize = 11.sp)
+                                        }
                                     }
                                 }
                             }
-                        }
-                        if (installed) {
-                            Chip("Установлена", primary = false)
-                        } else if (installing != v.id) {
-                            OutlinedButton(onClick = {
-                                installing = v.id
-                                scope.launch {
-                                    try {
-                                        app.versions.install(v.id) { stage, done, total ->
-                                            app.installProgress.value =
-                                                org.nulllauncher.mobile.InstallProgress(stage, done, total)
+                            if (installed) {
+                                Chip("Установлена", primary = false)
+                            } else if (installing != v.id) {
+                                OutlinedButton(onClick = {
+                                    installing = v.id
+                                    org.nulllauncher.mobile.core.InstallCancel.begin()
+                                    scope.launch {
+                                        try {
+                                            app.versions.install(v.id) { stage, done, total ->
+                                                app.installProgress.value =
+                                                    org.nulllauncher.mobile.InstallProgress(stage, done, total)
+                                            }
+                                            versions = app.versions.manifest().versions
+                                        } catch (e: Exception) {
+                                            app.lastError.value = e.message ?: "Ошибка установки"
+                                        } finally {
+                                            installing = null
+                                            app.installProgress.value = null
                                         }
-                                        versions = app.versions.manifest().versions
-                                    } catch (e: Exception) {
-                                        app.lastError.value = e.message ?: "Ошибка установки"
-                                    } finally {
-                                        installing = null
-                                        app.installProgress.value = null
                                     }
+                                }) {
+                                    Text("Установить", fontSize = 12.sp, color = Acc2)
                                 }
-                            }) {
-                                Text("Установить", fontSize = 12.sp, color = Acc2)
+                            }
+                        }
+                        // установленная версия → сразу создать из неё сборку и играть
+                        if (installed && installing == null) {
+                            Spacer(Modifier.height(8.dp))
+                            Button(
+                                onClick = {
+                                    val existing = app.instances.list().firstOrNull {
+                                        it.versionId == v.id && it.loader == "vanilla"
+                                    }
+                                    val created = existing ?: app.instances.create(
+                                        name = "Сборка $v.id",
+                                        versionId = v.id,
+                                    )
+                                    scope.launch { app.settings.setLastInstance(created.id) }
+                                    nav.navigate("instance/${created.id}")
+                                },
+                                modifier = Modifier.fillMaxWidth().height(42.dp),
+                                shape = RoundedCornerShape(13.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Acc),
+                            ) {
+                                Text(
+                                    if (app.instances.list().any { it.versionId == v.id }) "Открыть сборку $v.id" else "Создать сборку $v.id",
+                                    fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color.White,
+                                )
                             }
                         }
                     }
                 }
             }
+            item { Spacer(Modifier.height(12.dp)) }
         }
     }
 }

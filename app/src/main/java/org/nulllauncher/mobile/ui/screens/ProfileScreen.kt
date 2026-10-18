@@ -337,8 +337,8 @@ fun ProfileScreen(app: NullApp, nav: NavController) {
 }
 
 /**
- * Карточка Java Runtime: авто-установка одной кнопкой (как в Pojav) —
- * качаем OpenJDK 17 для Android из официальных сборок PojavLauncherTeam
+ * Карточка Java Runtime: авто-установка одной кнопкой —
+ * качаем OpenJDK 17 для Android из публичных сборок
  * и распаковываем в runtimes/. Прогресс прямо в карточке.
  */
 @Composable
@@ -454,7 +454,7 @@ private fun JavaRuntimeCard(app: NullApp) {
             }
             Spacer(Modifier.height(6.dp))
             Text(
-                "Источник: официальные сборки PojavLauncherTeam (OpenJDK 17, aarch64/armeabi/x86_64). Архив .tar.xz распаковывается в runtimes/ автоматически.",
+                "Источник: публичные сборки OpenJDK для Android (aarch64/armeabi/x86_64). Архив .tar.xz распаковывается в runtimes/ автоматически.",
                 fontSize = 10.5.sp, color = Mute,
             )
         }

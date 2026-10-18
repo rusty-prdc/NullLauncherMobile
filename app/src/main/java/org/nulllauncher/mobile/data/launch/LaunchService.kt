@@ -176,8 +176,8 @@ class LaunchService(private val ctx: Context) {
     // ---------- internals ----------
 
     /**
-     * Путь к java: из настроек → авто-поиск в runtimes/ → **авто-установка** (как в Pojav).
-     * JRE скачивается из официальных сборок PojavLauncherTeam с прогрессом на главной.
+     * Путь к java: из настроек → авто-поиск в runtimes/ → **авто-установка**.
+     * JRE скачивается из публичных сборок OpenJDK для Android с прогрессом на главной.
      */
     private suspend fun resolveOrInstallJava(javaPath: String?, onLog: ((String) -> Unit)?): String {
         resolveJava(javaPath)?.let { return it }
@@ -188,7 +188,7 @@ class LaunchService(private val ctx: Context) {
                 "Установи Java Runtime в Настройках → Java Runtime",
             )
 
-        onLog?.invoke("Java не найдена — скачиваю Java 17 для Android (Pojav build)…")
+        onLog?.invoke("Java не найдена — скачиваю Java 17 для Android…")
         val path = JreInstaller.install(app) { stage, done, total ->
             app.installProgress.value = org.nulllauncher.mobile.InstallProgress(stage, done, total)
             _state.value = LaunchState.Preparing(stage)

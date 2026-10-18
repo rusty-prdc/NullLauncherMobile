@@ -82,5 +82,8 @@ class SettingsRepository(private val ctx: Context) {
 
     /** Синхронное чтение пути Java (для запуска вне Flow) */
     fun javaPathValue(): String? = runBlocking { javaPath.first() }
+
+    /** Синхронное чтение id выбранной сборки */
+    fun lastInstanceIdValue(): String? = runBlocking { lastInstanceId.first() }
 }
 

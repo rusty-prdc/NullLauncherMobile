@@ -1,7 +1,9 @@
 package org.nulllauncher.mobile.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,13 +22,17 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Extension
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
@@ -35,6 +41,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -43,6 +50,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -51,27 +59,31 @@ import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 import org.nulllauncher.mobile.NullApp
 import org.nulllauncher.mobile.core.Storage
+import org.nulllauncher.mobile.data.instances.Instance
+import org.nulllauncher.mobile.data.launch.LaunchState
 import org.nulllauncher.mobile.data.modrinth.ModrinthService
 import org.nulllauncher.mobile.ui.theme.Acc
+import org.nulllauncher.mobile.ui.theme.Acc2
+import org.nulllauncher.mobile.ui.theme.AccSoft
 import org.nulllauncher.mobile.ui.theme.Card2
 import org.nulllauncher.mobile.ui.theme.Err
 import org.nulllauncher.mobile.ui.theme.Mute
 import org.nulllauncher.mobile.ui.theme.Ok
-import org.nulllauncher.mobile.ui.theme.Warn
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import org.nulllauncher.mobile.ui.theme.Acc2
-import org.nulllauncher.mobile.ui.theme.AccSoft
 
 /**
- * Карточка сборки: моды (вкл/выкл/удалить), память сборки, переименование,
- * копия и удаление. Реальное управление файлами сборки.
+ * Карточка сборки: запуск (как на главной), память, моды с вкл/выкл,
+ * переименование, копия, удаление.
  */
 @Composable
 fun InstanceDetailScreen(app: NullApp, nav: NavController, instanceId: String) {
     val scope = rememberCoroutineScope()
+    val account = app.currentAccount()
+    val launcherState by app.launcher.state.collectAsState()
+    val error by app.lastError.collectAsState()
 
     var instance by remember { mutableStateOf(app.instances.get(instanceId)) }
     var mods by remember { mutableStateOf(listOf<File>()) }
@@ -82,7 +94,6 @@ fun InstanceDetailScreen(app: NullApp, nav: NavController, instanceId: String) {
     var showRename by remember { mutableStateOf(false) }
     var showDeleteMod by remember { mutableStateOf<File?>(null) }
     var showDeleteInstance by remember { mutableStateOf(false) }
-    var message by remember { mutableStateOf<String?>(null) }
 
     fun refresh() {
         instance = app.instances.get(instanceId)
@@ -105,6 +116,23 @@ fun InstanceDetailScreen(app: NullApp, nav: NavController, instanceId: String) {
         return
     }
 
+    val busy = launcherState is LaunchState.Running || launcherState is LaunchState.Preparing
+
+    fun launch() {
+        val err = app.launcher.checkInstance(inst)
+        if (err != null) {
+            app.lastError.value = err
+            return
+        }
+        app.lastError.value = null
+        scope.launch {
+            app.settings.setLastInstance(inst.id)
+            app.instances.markPlayed(inst.id)
+            app.launcher.start(inst, account, app.settings.javaPathValue()) { l -> app.appendLog(l) }
+            refresh()
+        }
+    }
+
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { nav.popBackStack() }) {
@@ -113,7 +141,7 @@ fun InstanceDetailScreen(app: NullApp, nav: NavController, instanceId: String) {
             Column(Modifier.weight(1f)) {
                 Text(inst.name, style = MaterialTheme.typography.titleLarge, maxLines = 1)
                 Text(
-                    "${inst.versionId} · ${inst.loader}${inst.loaderVersion?.let { " $it" } ?: ""}",
+                    "${inst.versionId} · ${loaderLabel(inst)}${inst.loaderVersion?.let { " $it" } ?: ""}",
                     fontSize = 11.sp, color = Mute,
                 )
             }
@@ -129,20 +157,95 @@ fun InstanceDetailScreen(app: NullApp, nav: NavController, instanceId: String) {
             Modifier.weight(1f).padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            // ---------- запуск ----------
             item {
-                message?.let {
-                    Card(shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = AccSoft)) {
-                        Text(it, Modifier.padding(10.dp), fontSize = 12.sp, color = Ok)
+                Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                    Column(Modifier.padding(14.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                Modifier.size(48.dp).clip(RoundedCornerShape(14.dp)).background(AccSoft),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    inst.name.firstOrNull()?.uppercase() ?: "S",
+                                    fontWeight = FontWeight.Bold, fontSize = 22.sp, color = Acc2,
+                                )
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.weight(1f)) {
+                                Chip("${loaderLabel(inst)} ${inst.versionId}", primary = true)
+                                Chip("${inst.memoryMb / 1024} ГБ")
+                            }
+                        }
+                        Spacer(Modifier.height(12.dp))
+                        Button(
+                            onClick = { launch() },
+                            modifier = Modifier.fillMaxWidth().height(50.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Acc),
+                            enabled = !busy,
+                        ) {
+                            if (!busy) {
+                                Icon(Icons.Filled.PlayArrow, null, tint = Color.White, modifier = Modifier.size(22.dp))
+                                Spacer(Modifier.width(6.dp))
+                            }
+                            Text(
+                                when (launcherState) {
+                                    is LaunchState.Preparing -> "Запуск…"
+                                    is LaunchState.Running -> "Игра идёт"
+                                    else -> "Играть"
+                                },
+                                fontWeight = FontWeight.Bold, fontSize = 16.sp,
+                            )
+                        }
+                        if (busy) {
+                            Spacer(Modifier.height(8.dp))
+                            OutlinedButton(onClick = { app.launcher.stop() }, modifier = Modifier.fillMaxWidth()) {
+                                Text(
+                                    if (launcherState is LaunchState.Running) "Остановить игру" else "Отмена",
+                                    color = Err, fontSize = 13.sp,
+                                )
+                            }
+                        }
+                        (launcherState as? LaunchState.Preparing)?.let {
+                            Spacer(Modifier.height(6.dp))
+                            Text(it.stage, fontSize = 11.sp, color = Acc2)
+                        }
+                        (launcherState as? LaunchState.Failed)?.let { st ->
+                            Spacer(Modifier.height(6.dp))
+                            Text(st.title, fontSize = 11.sp, color = Err)
+                            Text(st.details, fontSize = 10.sp, color = Mute, maxLines = 3)
+                        }
+                        error?.let { e ->
+                            Spacer(Modifier.height(6.dp))
+                            Text(e, fontSize = 11.sp, color = Err, maxLines = 4)
+                        }
+                        Spacer(Modifier.height(6.dp))
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(
+                                if (inst.lastPlayedAt > 0)
+                                    "Играли: " + SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(inst.lastPlayedAt))
+                                else "Ещё не запускалась",
+                                fontSize = 11.sp, color = Mute,
+                            )
+                            Text(
+                                "Изменить настройки ↓",
+                                fontSize = 11.sp, color = Acc2,
+                                modifier = Modifier.clickable {
+                                    // прокрутка LazyColumn к настройкам — просто показываем раздел
+                                },
+                            )
+                        }
                     }
                 }
             }
 
-            // память сборки
+            // ---------- память сборки ----------
             item {
                 Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                     Column(Modifier.padding(14.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Память этой сборки", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                            Text("Оперативная память", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                             Text("${(newMemory / 1024f).let { "%.1f".format(it) }} ГБ", color = Acc2, fontSize = 13.sp)
                         }
                         Slider(
@@ -160,32 +263,28 @@ fun InstanceDetailScreen(app: NullApp, nav: NavController, instanceId: String) {
                 }
             }
 
-            // статистика
+            // ---------- статистика ----------
             item {
                 Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                     Column(Modifier.padding(14.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Модов: ${mods.size}", fontSize = 12.sp, color = Mute)
-                            Text("Размер: ${fmtSize(Storage.dirSize(Storage.instanceDir(app, inst.id)))}", fontSize = 12.sp, color = Mute)
-                        }
-                        inst.lastPlayedAt.takeIf { it > 0 }?.let { ts ->
-                            Spacer(Modifier.height(4.dp))
                             Text(
-                                "Играли: ${SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(ts))}",
-                                fontSize = 11.sp, color = Mute,
+                                "Размер: ${fmtSize(Storage.dirSize(Storage.instanceDir(app, inst.id)))}",
+                                fontSize = 12.sp, color = Mute,
                             )
                         }
                     }
                 }
             }
 
-            // заголовок модов
+            // ---------- заголовок модов ----------
             item {
                 Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("Моды", fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.weight(1f))
                     TextButton(onClick = { nav.navigate("catalog") }) {
-                        Icon(Icons.Filled.Add, null, tint = Acc, modifier = Modifier.size(16.dp))
-                        Text(" Из каталога", color = Acc, fontSize = 12.sp)
+                        Icon(Icons.Filled.Add, null, tint = Acc2, modifier = Modifier.size(16.dp))
+                        Text(" Из каталога", color = Acc2, fontSize = 12.sp)
                     }
                 }
             }
@@ -193,7 +292,9 @@ fun InstanceDetailScreen(app: NullApp, nav: NavController, instanceId: String) {
             if (mods.isEmpty()) {
                 item {
                     Text(
-                        "Модов пока нет. Установи из каталога Modrinth — они попадут в эту сборку.",
+                        if (inst.loader == "vanilla")
+                            "Vanilla не грузит моды — выбери сборку с Fabric/Forge/Quilt или ресурс-паки в каталоге."
+                        else "Модов пока нет. Установи из каталога — они попадут именно в эту сборку.",
                         fontSize = 12.sp, color = Mute,
                     )
                 }
@@ -211,7 +312,7 @@ fun InstanceDetailScreen(app: NullApp, nav: NavController, instanceId: String) {
                             Text(
                                 baseName.removeSuffix(".jar"),
                                 fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
-                                color = if (enabled) Color.White else Mute,
+                                color = if (enabled) MaterialTheme.colorScheme.onBackground else Mute,
                                 maxLines = 2,
                             )
                             Text(fmtSize(f.length()), fontSize = 10.5.sp, color = Mute)
@@ -260,7 +361,7 @@ fun InstanceDetailScreen(app: NullApp, nav: NavController, instanceId: String) {
                         refresh()
                     }
                     showRename = false
-                }) { Text("Сохранить", color = Acc) }
+                }) { Text("Сохранить", color = Acc2) }
             },
             dismissButton = {
                 TextButton(onClick = { showRename = false }) { Text("Отмена", color = Mute) }

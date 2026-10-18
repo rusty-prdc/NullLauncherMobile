@@ -12,9 +12,9 @@ import org.nulllauncher.mobile.core.TarXz
 import java.io.File
 
 /**
- * Авто-установка Java Runtime — как в Pojav Launcher.
+ * Авто-установка Java Runtime.
  *
- * Источник: официальные релизы PojavLauncherTeam/android-openjdk-build-multiarch —
+ * Источник: публичные релизы OpenJDK, собранные под Android (bionic),
  * OpenJDK 17, собранный под Android (bionic), а не десктопный Linux.
  * Архив .tar.xz распаковывается вручную (TarXz) в files/runtimes/jre17-<arch>/.
  */
