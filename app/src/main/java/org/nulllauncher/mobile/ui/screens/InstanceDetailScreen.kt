@@ -87,6 +87,8 @@ fun InstanceDetailScreen(app: NullApp, nav: NavController, instanceId: String) {
 
     var instance by remember { mutableStateOf(app.instances.get(instanceId)) }
     var mods by remember { mutableStateOf(listOf<File>()) }
+    var worlds by remember { mutableStateOf(listOf<File>()) }
+    var packs by remember { mutableStateOf(listOf<File>()) }
     var newName by remember { mutableStateOf("") }
     var newMemory by remember { mutableFloatStateOf(2048f) }
     var maxMemory by remember { mutableStateOf(4096) }
@@ -98,6 +100,10 @@ fun InstanceDetailScreen(app: NullApp, nav: NavController, instanceId: String) {
     fun refresh() {
         instance = app.instances.get(instanceId)
         mods = ModrinthService.installedMods(Storage.instanceMods(app, instanceId))
+        worlds = Storage.instanceSaves(app, instanceId).listFiles { f -> f.isDirectory }
+            ?.sortedByDescending { it.lastModified() } ?: emptyList()
+        packs = Storage.instanceResourcePacks(app, instanceId).listFiles { f -> f.isFile }
+            ?.sortedBy { it.name } ?: emptyList()
         instance?.let { newMemory = it.memoryMb.toFloat() }
     }
 
@@ -273,6 +279,65 @@ fun InstanceDetailScreen(app: NullApp, nav: NavController, instanceId: String) {
                                 "Размер: ${fmtSize(Storage.dirSize(Storage.instanceDir(app, inst.id)))}",
                                 fontSize = 12.sp, color = Mute,
                             )
+                        }
+                    }
+                }
+            }
+
+            // ---------- миры ----------
+            item {
+                Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Миры", fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.weight(1f))
+                    Text("${worlds.size}", fontSize = 12.sp, color = Mute)
+                }
+            }
+            if (worlds.isEmpty()) {
+                item {
+                    Text(
+                        "Миров пока нет — они появятся после первой игры в этой сборке.",
+                        fontSize = 12.sp, color = Mute,
+                    )
+                }
+            }
+            items(worlds, key = { it.absolutePath }) { w ->
+                Card(shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(w.name, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                            Text(
+                                fmtSize(Storage.dirSize(w)) + " · " +
+                                    SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date(w.lastModified())),
+                                fontSize = 10.5.sp, color = Mute,
+                            )
+                        }
+                    }
+                }
+            }
+
+            // ---------- ресурс-паки ----------
+            item {
+                Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Ресурс-паки", fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.weight(1f))
+                    Text("${packs.size}", fontSize = 12.sp, color = Mute)
+                }
+            }
+            if (packs.isEmpty()) {
+                item {
+                    Text(
+                        "Ресурс-паков нет. Скопируйте .zip в папку сборки — здесь они будут видны.",
+                        fontSize = 12.sp, color = Mute,
+                    )
+                }
+            }
+            items(packs, key = { it.absolutePath }) { p ->
+                Card(shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(p.name, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                            Text(fmtSize(p.length()), fontSize = 10.5.sp, color = Mute)
+                        }
+                        IconButton(onClick = { p.delete(); refresh() }) {
+                            Icon(Icons.Filled.Delete, "Удалить ресурс-пак", tint = Mute, modifier = Modifier.size(16.dp))
                         }
                     }
                 }

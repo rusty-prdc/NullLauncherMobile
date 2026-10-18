@@ -18,6 +18,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Description
@@ -320,6 +321,12 @@ fun ProfileScreen(app: NullApp, nav: NavController) {
                     Icon(Icons.Filled.Star, null, tint = Acc2, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
                     Text("Премиум подписка", fontSize = 13.sp, color = Acc2)
+                }
+                HorizontalDivider(color = Line)
+                TextButton(onClick = { nav.navigate("ai") }, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Filled.AutoAwesome, null, tint = Acc2, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("ИИ-помощник", fontSize = 13.sp, color = Acc2)
                 }
                 HorizontalDivider(color = Line)
                 TextButton(onClick = { nav.navigate("logs") }, modifier = Modifier.fillMaxWidth()) {

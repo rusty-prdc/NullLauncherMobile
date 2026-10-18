@@ -39,6 +39,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import kotlinx.coroutines.delay
+import org.nulllauncher.mobile.ui.screens.AIScreen
 import org.nulllauncher.mobile.ui.screens.BottomBar
 import org.nulllauncher.mobile.ui.screens.CatalogScreen
 import org.nulllauncher.mobile.ui.screens.HomeScreen
@@ -137,6 +138,7 @@ private fun MainNav() {
                 composable("catalog") { CatalogScreen(app, nav) }
                 composable("profile") { ProfileScreen(app, nav) }
                 composable("subscription") { SubscriptionScreen(app, nav, app.billing) }
+                composable("ai") { AIScreen(app, nav) }
                 composable("create_instance") {
                     InstanceCreationWizard(app, nav) { inst: Instance ->
                         nav.popBackStack()
