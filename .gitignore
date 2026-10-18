@@ -13,3 +13,4 @@ captures/
 # signing — never commit
 release.keystore
 keystore.properties
+.kotlin/
