@@ -82,7 +82,7 @@ data class LibraryDownloads(
 )
 
 @Serializable
-data class Rule(val action: String, val os: OsRule? = null)
+data class Rule(val action: String, val os: OsRule? = null, val features: Map<String, Boolean>? = null)
 
 @Serializable
 data class OsRule(val name: String? = null)
@@ -104,6 +104,13 @@ data class ArgumentEl(
 )
 
 object ArgumentElSerializer : KSerializer<ArgumentEl> {
+    // Ленивый Json: Mojang добавляет ключи (features и др.), которые не должны валить парсинг
+    private val lenientJson = Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+        coerceInputValues = true
+    }
+
     override val descriptor: SerialDescriptor = JsonElement.serializer().descriptor
 
     override fun deserialize(decoder: Decoder): ArgumentEl {
@@ -113,8 +120,8 @@ object ArgumentElSerializer : KSerializer<ArgumentEl> {
             is JsonObject -> ArgumentEl(
                 value = el["value"],
                 rules = el["rules"]?.let { arr ->
-                    Json.decodeFromJsonElement(JsonArray.serializer(), arr).map {
-                        Json.decodeFromJsonElement(Rule.serializer(), it)
+                    lenientJson.decodeFromJsonElement(JsonArray.serializer(), arr).map {
+                        lenientJson.decodeFromJsonElement(Rule.serializer(), it)
                     }
                 },
             )
@@ -128,7 +135,7 @@ object ArgumentElSerializer : KSerializer<ArgumentEl> {
             output.encodeJsonElement(value.value ?: JsonNull)
         } else {
             output.encodeJsonElement(buildJsonObject {
-                put("rules", Json.encodeToJsonElement(ListSerializer(Rule.serializer()), value.rules))
+                put("rules", lenientJson.encodeToJsonElement(ListSerializer(Rule.serializer()), value.rules))
                 value.value?.let { put("value", it) }
             })
         }

@@ -16,7 +16,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -56,6 +61,9 @@ import org.nulllauncher.mobile.ui.theme.Warn
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import org.nulllauncher.mobile.ui.theme.AccSoft
+import org.nulllauncher.mobile.ui.theme.ErrSoft
+import org.nulllauncher.mobile.ui.theme.Line
 
 @Composable
 fun HomeScreen(app: NullApp, nav: NavController) {
@@ -76,7 +84,7 @@ fun HomeScreen(app: NullApp, nav: NavController) {
             Box(
                 Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(Card2),
                 contentAlignment = Alignment.Center,
-            ) { Text("🧑‍🌾", fontSize = 20.sp) }
+            ) { Icon(Icons.Filled.Person, null, tint = Acc2, modifier = Modifier.size(20.dp)) }
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
                 Text(account?.name ?: "Гость", fontWeight = FontWeight.Bold, fontSize = 14.sp)
@@ -94,24 +102,30 @@ fun HomeScreen(app: NullApp, nav: NavController) {
 
         // ---------- карточка запуска ----------
         if (selected == null) {
-            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1533))) {
+            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.padding(16.dp)) {
-                    Text("⚠ Minecraft не установлен", color = Warn, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.Warning, null, tint = Warn, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Minecraft не установлен", color = Warn, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                    }
                     Spacer(Modifier.height(12.dp))
                     Button(
                         onClick = { nav.navigate("versions") },
                         modifier = Modifier.fillMaxWidth().height(52.dp),
                         shape = RoundedCornerShape(18.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2A2145)),
+                        colors = ButtonDefaults.buttonColors(containerColor = AccSoft),
                     ) {
-                        Text("⬇ Установить Minecraft", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Icon(Icons.Filled.Download, null, tint = Acc2, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Установить Minecraft", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Acc2)
                     }
                     Spacer(Modifier.height(8.dp))
                     Text("Выбери версию в менеджере", color = Mute, fontSize = 11.sp)
                 }
             }
         } else {
-            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1533))) {
+            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.padding(16.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Chip("${loaderLabel(selected)} ${selected.versionId}", primary = true)
@@ -134,14 +148,18 @@ fun HomeScreen(app: NullApp, nav: NavController) {
                         },
                         modifier = Modifier.fillMaxWidth().height(52.dp),
                         shape = RoundedCornerShape(18.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6D46C8)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Acc),
                         enabled = launcherState !is LaunchState.Running && launcherState !is LaunchState.Preparing,
                     ) {
+                        if (launcherState !is LaunchState.Preparing && launcherState !is LaunchState.Running) {
+                            Icon(Icons.Filled.PlayArrow, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(8.dp))
+                        }
                         Text(
                             when (launcherState) {
                                 is LaunchState.Preparing -> "Запуск…"
                                 is LaunchState.Running -> "Игра идёт"
-                                else -> "▶ Играть"
+                                else -> "Играть"
                             },
                             fontWeight = FontWeight.Bold, fontSize = 17.sp,
                         )
@@ -187,10 +205,12 @@ fun HomeScreen(app: NullApp, nav: NavController) {
         // ---------- ошибка ----------
         error?.let { err ->
             Spacer(Modifier.height(12.dp))
-            Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF2A1520))) {
+            Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = ErrSoft)) {
                 Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(err, color = Err, fontSize = 12.sp, modifier = Modifier.weight(1f))
-                    IconButton(onClick = { app.lastError.value = null }) { Text("✕", color = Mute) }
+                    IconButton(onClick = { app.lastError.value = null }) {
+                        Icon(Icons.Filled.Close, "Закрыть", tint = Mute, modifier = Modifier.size(16.dp))
+                    }
                 }
             }
         }
@@ -211,9 +231,14 @@ private fun InstanceRow(inst: Instance, onClick: () -> Unit) {
     Card(shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth(), onClick = onClick) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
-                Modifier.size(46.dp).clip(RoundedCornerShape(13.dp)).background(Card2),
+                Modifier.size(46.dp).clip(RoundedCornerShape(13.dp)).background(AccSoft),
                 contentAlignment = Alignment.Center,
-            ) { Text(inst.coverEmoji, fontSize = 22.sp) }
+            ) {
+                Text(
+                    inst.name.firstOrNull()?.uppercase() ?: "S",
+                    fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Acc2,
+                )
+            }
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(inst.name, fontWeight = FontWeight.Bold, fontSize = 13.5.sp)
@@ -235,7 +260,7 @@ fun Chip(text: String, primary: Boolean = false) {
             .background(if (primary) Acc.copy(alpha = .2f) else Card2)
             .padding(horizontal = 12.dp, vertical = 6.dp),
     ) {
-        Text(text, fontSize = 11.5.sp, color = if (primary) Color(0xFFC4B0FF) else MaterialTheme.colorScheme.onBackground)
+        Text(text, fontSize = 11.5.sp, color = if (primary) Acc2 else MaterialTheme.colorScheme.onBackground)
     }
 }
 

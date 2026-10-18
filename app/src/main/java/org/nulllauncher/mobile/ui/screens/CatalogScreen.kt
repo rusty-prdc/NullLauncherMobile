@@ -1,6 +1,8 @@
 package org.nulllauncher.mobile.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,7 +17,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Extension
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -39,16 +49,23 @@ import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 import org.nulllauncher.mobile.InstallProgress
 import org.nulllauncher.mobile.NullApp
+import org.nulllauncher.mobile.core.LauncherException
+import org.nulllauncher.mobile.core.Storage
+import org.nulllauncher.mobile.data.instances.Instance
 import org.nulllauncher.mobile.data.modrinth.ModHit
 import org.nulllauncher.mobile.data.modrinth.ModrinthService
-import org.nulllauncher.mobile.ui.theme.Acc
 import org.nulllauncher.mobile.ui.theme.Acc2
+import org.nulllauncher.mobile.ui.theme.AccSoft
 import org.nulllauncher.mobile.ui.theme.Card2
+import org.nulllauncher.mobile.ui.theme.Err
+import org.nulllauncher.mobile.ui.theme.ErrSoft
+import org.nulllauncher.mobile.ui.theme.Line
 import org.nulllauncher.mobile.ui.theme.Mute
 import org.nulllauncher.mobile.ui.theme.Ok
 
 /**
- * Каталог Modrinth: поиск, фильтры, установка модов в выбранную сборку.
+ * Каталог Modrinth: поиск, выбор целевой сборки, фильтры типа,
+ * честная проверка совместимости (версия MC + загрузчик).
  */
 @Composable
 fun CatalogScreen(app: NullApp, nav: NavController) {
@@ -56,26 +73,43 @@ fun CatalogScreen(app: NullApp, nav: NavController) {
     var query by remember { mutableStateOf("") }
     var hits by remember { mutableStateOf<List<ModHit>>(emptyList()) }
     var searching by remember { mutableStateOf(false) }
+    var type by remember { mutableStateOf("mod") } // mod | modpack | resourcepack
     var installed by remember { mutableStateOf<Set<String>>(emptySet()) }
     var installingSlug by remember { mutableStateOf<String?>(null) }
     var installProgress by remember { mutableStateOf<InstallProgress?>(null) }
+    var message by remember { mutableStateOf<String?>(null) }
 
-    val instances = remember { app.instances.list() }
-    val target = instances.firstOrNull()
+    var instances by remember { mutableStateOf(app.instances.list()) }
+    var targetId by remember {
+        mutableStateOf(app.instances.list().firstOrNull()?.id)
+    }
+    val target: Instance? = instances.firstOrNull { it.id == targetId } ?: instances.firstOrNull()
+
+    fun refreshInstalled() {
+        installed = if (target != null) {
+            Storage.instanceMods(app, target.id)
+                .listFiles()
+                ?.map { it.name.removeSuffix(".disabled") }
+                ?.map { it.substringBeforeLast("-") }  // slug-догадка по имени файла
+                ?.toSet() ?: emptySet()
+        } else emptySet()
+    }
 
     fun doSearch() {
         scope.launch {
             searching = true
+            message = null
             try {
-                val res = ModrinthService.search(query)
+                val res = ModrinthService.search(
+                    query = query,
+                    gameVersion = target?.versionId,
+                    loader = target?.loader?.takeIf { it != "vanilla" },
+                    projectType = type,
+                )
                 hits = res.hits
-                installed = if (target != null) {
-                    ModrinthService.installedMods(
-                        org.nulllauncher.mobile.core.Storage.instanceMods(app, target.id)
-                    ).map { it.name.removeSuffix(".disabled").substringBeforeLast("-") }.toSet()
-                } else emptySet()
+                refreshInstalled()
             } catch (e: Exception) {
-                app.lastError.value = e.message ?: "Ошибка поиска"
+                message = e.message ?: "Ошибка поиска"
             }
             searching = false
         }
@@ -93,23 +127,72 @@ fun CatalogScreen(app: NullApp, nav: NavController) {
             value = query,
             onValueChange = { query = it },
             placeholder = { Text("Поиск модов…", color = Mute) },
+            leadingIcon = { Icon(Icons.Filled.Search, null, tint = Mute, modifier = Modifier.size(18.dp)) },
             modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)),
             singleLine = true,
             colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color(0xFF14141C), unfocusedContainerColor = Color(0xFF14141C),
-                focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent,
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
             ),
         )
 
         Spacer(Modifier.height(10.dp))
 
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("Установка в: ${target?.name ?: "нет сборок"}", fontSize = 11.5.sp, color = Mute)
-            OutlinedButton(onClick = { doSearch() }) { Text("Найти", fontSize = 12.sp, color = Color(0xFFC4B0FF)) }
+        // ---------- тип проекта ----------
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip("Моды", type == "mod") { type = "mod" }
+            FilterChip("Модпаки", type == "modpack") { type = "modpack" }
+            FilterChip("Ресурс-паки", type == "resourcepack") { type = "resourcepack" }
+        }
+
+        Spacer(Modifier.height(10.dp))
+
+        // ---------- выбор целевой сборки ----------
+        InstancePicker(
+            instances = instances,
+            selected = target,
+            onSelect = {
+                targetId = it?.id
+                refreshInstalled()
+            },
+        )
+
+        // ---------- совместимость ----------
+        target?.let { t ->
+            val compat = compatibilityNote(t, type)
+            Spacer(Modifier.height(8.dp))
+            if (compat == null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.Extension, null, tint = Ok, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        "Совместимо: ${t.versionId} · ${loaderLabel(t)}",
+                        fontSize = 11.5.sp, color = Ok,
+                    )
+                }
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.Warning, null, tint = Err, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(compat, fontSize = 11.5.sp, color = Err, modifier = Modifier.weight(1f))
+                }
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(onClick = { doSearch() }, modifier = Modifier.fillMaxWidth()) {
+            Text("Найти", fontSize = 13.sp, color = Acc2, fontWeight = FontWeight.SemiBold)
+        }
+
+        message?.let {
+            Spacer(Modifier.height(8.dp))
+            Text(it, color = Err, fontSize = 12.sp)
         }
 
         if (searching) {
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(10.dp))
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp)))
         }
 
@@ -117,7 +200,16 @@ fun CatalogScreen(app: NullApp, nav: NavController) {
 
         LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
             items(hits, key = { it.projectId }) { hit ->
-                Card(shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
+                val compatNote = target?.let { t -> compatibilityNote(t, type, hit) }
+                val incompatible = compatNote != null
+
+                Card(
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (incompatible) ErrSoft else MaterialTheme.colorScheme.surface,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
                     Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         if (hit.iconUrl != null) {
                             RemoteImage(
@@ -129,15 +221,19 @@ fun CatalogScreen(app: NullApp, nav: NavController) {
                             Box(
                                 Modifier.size(46.dp).clip(RoundedCornerShape(13.dp)).background(Card2),
                                 contentAlignment = Alignment.Center,
-                            ) { Text("🧩", fontSize = 22.sp) }
+                            ) { Icon(Icons.Filled.Extension, null, tint = Acc2, modifier = Modifier.size(22.dp)) }
                         }
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) {
-                            Text(hit.title, fontWeight = FontWeight.Bold, fontSize = 13.5.sp)
+                            Text(hit.title, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, maxLines = 1)
                             Text(
                                 "от ${hit.author} · ${fmtDownloads(hit.downloads)}",
                                 fontSize = 11.sp, color = Mute,
                             )
+                            compatNote?.let {
+                                Spacer(Modifier.height(3.dp))
+                                Text(it, fontSize = 10.5.sp, color = Err, maxLines = 2)
+                            }
                             if (installingSlug == hit.slug && installProgress != null) {
                                 Spacer(Modifier.height(6.dp))
                                 LinearProgressIndicator(
@@ -149,42 +245,152 @@ fun CatalogScreen(app: NullApp, nav: NavController) {
                                 )
                             }
                         }
-                        val gameVersion = target?.versionId
-                        val loader = target?.loader ?: "fabric"
-                        OutlinedButton(onClick = {
-                            if (target == null) {
-                                app.lastError.value = "Создай сборку для установки модов"
-                                return@OutlinedButton
-                            }
-                            scope.launch {
-                                installingSlug = hit.slug
-                                try {
-                                    val ver = ModrinthService.bestVersion(hit.slug, gameVersion!!, loader)
-                                        ?: throw org.nulllauncher.mobile.core.LauncherException("Нет совместимой версии", hit.title)
-                                    val file = ver.files.firstOrNull { it.primary } ?: ver.files.firstOrNull()
-                                        ?: throw org.nulllauncher.mobile.core.LauncherException("В версии нет файла", ver.name)
-                                    ModrinthService.installFile(
-                                        file,
-                                        org.nulllauncher.mobile.core.Storage.instanceMods(app, target.id),
-                                    ) { d, t -> installProgress = InstallProgress("Скачивание ${file.filename}", d, t) }
-                                    app.instances.markPlayed(target.id)
-                                } catch (e: Exception) {
-                                    app.lastError.value = e.message ?: "Ошибка установки"
+                        val isInstalled = installed.contains(hit.slug)
+                        OutlinedButton(
+                            enabled = !incompatible && installingSlug == null,
+                            onClick = {
+                                val t = target ?: run {
+                                    message = "Сначала выбери или создай сборку"
+                                    return@OutlinedButton
                                 }
-                                installingSlug = null
-                                installProgress = null
-                            }
-                        }) {
+                                scope.launch {
+                                    installingSlug = hit.slug
+                                    try {
+                                        val ver = ModrinthService.bestVersion(hit.slug, t.versionId, t.loader)
+                                            ?: throw LauncherException("Нет версии для ${t.versionId} · ${loaderLabel(t)}", hit.title)
+                                        val file = ver.files.firstOrNull { f -> f.primary } ?: ver.files.firstOrNull()
+                                            ?: throw LauncherException("В версии нет файла", ver.name)
+                                        val dest = when (type) {
+                                            "resourcepack" -> Storage.instanceResourcePacks(app, t.id)
+                                            else -> Storage.instanceMods(app, t.id)
+                                        }
+                                        ModrinthService.installFile(file, dest) { d, tg ->
+                                            installProgress = InstallProgress("Скачивание ${file.filename}", d, tg)
+                                        }
+                                        refreshInstalled()
+                                    } catch (e: Exception) {
+                                        message = e.message ?: "Ошибка установки"
+                                    }
+                                    installingSlug = null
+                                    installProgress = null
+                                }
+                            },
+                        ) {
                             Text(
-                                if (installed.contains(hit.slug)) "Установлен" else "Установить",
+                                when {
+                                    isInstalled -> "Установлен"
+                                    incompatible -> "Несовместимо"
+                                    else -> "Установить"
+                                },
                                 fontSize = 11.5.sp,
-                                color = if (installed.contains(hit.slug)) Ok else Color(0xFFC4B0FF),
+                                color = when {
+                                    isInstalled -> Ok
+                                    incompatible -> Err
+                                    else -> Acc2
+                                },
                             )
                         }
                     }
                 }
             }
+            item { Spacer(Modifier.height(12.dp)) }
         }
+    }
+}
+
+/**
+ * Проверка совместимости цели (null = совместимо).
+ * - ваниль не грузит моды вообще;
+ * - модпаки в ваниль тоже нельзя;
+ * - ресурс-паки можно в любую сборку;
+ * - моды требуют версию MC и загрузчик из списка проекта.
+ */
+private fun compatibilityNote(t: Instance, type: String, hit: ModHit? = null): String? {
+    if (type == "resourcepack") return null
+    if (t.loader == "vanilla") {
+        return if (type == "modpack") "Модпак нельзя запустить на Vanilla — нужна сборка с Fabric/Forge/NeoForge/Quilt"
+        else "Моды не работают на Vanilla — выбери сборку с Fabric/Forge/Quilt"
+    }
+    if (hit != null) {
+        val versions = hit.versions
+        if (versions.isNotEmpty() && t.versionId !in versions) {
+            return "Не выходит на ${t.versionId} (поддерживает: ${versions.take(3).joinToString(", ")}${if (versions.size > 3) "…" else ""})"
+        }
+        val cats = hit.categories
+        if (cats.isNotEmpty()) {
+            val loaderCat = when (t.loader) {
+                "fabric" -> "fabric"
+                "forge" -> "forge"
+                "neoforge" -> "neoforge"
+                "quilt" -> "quilt"
+                else -> null
+            }
+            val hasAnyLoader = listOf("fabric", "forge", "neoforge", "quilt", "liteloader").any { it in cats }
+            if (loaderCat != null && hasAnyLoader && loaderCat !in cats) {
+                return "Для ${loaderLabel(t)}, а мод под ${cats.filter { it in listOf("fabric", "forge", "neoforge", "quilt") }.joinToString("/")}"
+            }
+        }
+    }
+    return null
+}
+
+/** Выпадающий выбор целевой сборки */
+@Composable
+private fun InstancePicker(
+    instances: List<Instance>,
+    selected: Instance?,
+    onSelect: (Instance?) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .clickable { expanded = instances.isNotEmpty() }
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text("Установить в:", fontSize = 10.5.sp, color = Mute)
+            Text(
+                selected?.let { "${it.name} · ${it.versionId} · ${loaderLabel(it)}" } ?: "нет сборок — создай в разделе «Сборки»",
+                fontSize = 12.5.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = if (selected == null) Err else MaterialTheme.colorScheme.onBackground,
+            )
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            instances.forEach { inst ->
+                DropdownMenuItem(
+                    text = { Text("${inst.name} · ${inst.versionId} · ${loaderLabel(inst)}", fontSize = 13.sp) },
+                    onClick = { onSelect(inst); expanded = false },
+                )
+            }
+        }
+        Text("▾", color = Mute, fontSize = 14.sp)
+    }
+}
+
+@Composable
+fun FilterChip(text: String, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(if (selected) AccSoft else MaterialTheme.colorScheme.surface)
+            .then(
+                if (selected) Modifier.border(1.dp, Acc2, RoundedCornerShape(999.dp))
+                else Modifier.border(1.dp, Line, RoundedCornerShape(999.dp)),
+            )
+            .clickable { onClick() }
+            .padding(horizontal = 14.dp, vertical = 7.dp),
+    ) {
+        Text(
+            text,
+            fontSize = 11.5.sp,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            color = if (selected) Acc2 else Mute,
+        )
     }
 }
 

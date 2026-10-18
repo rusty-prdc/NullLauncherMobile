@@ -17,11 +17,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -62,6 +68,9 @@ import org.nulllauncher.mobile.ui.theme.Warn
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import org.nulllauncher.mobile.ui.theme.Acc2
+import org.nulllauncher.mobile.ui.theme.AccSoft
+import org.nulllauncher.mobile.ui.theme.Line
 
 /**
  * Профиль: аккаунты Microsoft (device-code вход) + настройки производительности.
@@ -119,7 +128,7 @@ fun ProfileScreen(app: NullApp, nav: NavController) {
         Spacer(Modifier.height(10.dp))
 
         // ---------- аккаунт ----------
-        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF14141C))) {
+        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp)) {
                 if (account == null) {
                     Text("Вход через Microsoft", fontWeight = FontWeight.Bold, fontSize = 14.sp)
@@ -152,7 +161,7 @@ fun ProfileScreen(app: NullApp, nav: NavController) {
                         },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !waiting,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6D46C8)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Acc),
                     ) { Text("Войти через Microsoft", fontWeight = FontWeight.SemiBold) }
 
                     if (waiting && deviceCode != null) {
@@ -169,9 +178,9 @@ fun ProfileScreen(app: NullApp, nav: NavController) {
                 } else {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
-                            Modifier.size(44.dp).clip(RoundedCornerShape(13.dp)).background(Card2),
+                            Modifier.size(44.dp).clip(RoundedCornerShape(13.dp)).background(AccSoft),
                             contentAlignment = Alignment.Center,
-                        ) { Text("🧑‍🌾", fontSize = 22.sp) }
+                        ) { Icon(Icons.Filled.Person, null, tint = Acc2, modifier = Modifier.size(24.dp)) }
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) {
                             Text(account!!.name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
@@ -203,11 +212,11 @@ fun ProfileScreen(app: NullApp, nav: NavController) {
         Spacer(Modifier.height(14.dp))
 
         // ---------- память ----------
-        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF14141C))) {
+        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("Оперативная память", fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp)
-                    Text("${"%.1f".format(memoryMb / 1024f)} ГБ", color = Color(0xFFC4B0FF), fontSize = 13.5.sp)
+                    Text("${"%.1f".format(memoryMb / 1024f)} ГБ", color = Acc2, fontSize = 13.5.sp)
                 }
                 Slider(
                     value = memoryMb.coerceIn(minMemory.toFloat(), maxMemory.toFloat()),
@@ -227,7 +236,7 @@ fun ProfileScreen(app: NullApp, nav: NavController) {
         Spacer(Modifier.height(14.dp))
 
         // ---------- графика ----------
-        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF14141C))) {
+        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Column {
@@ -254,7 +263,7 @@ fun ProfileScreen(app: NullApp, nav: NavController) {
                 Spacer(Modifier.height(12.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("Разрешение рендера", fontSize = 13.5.sp)
-                    Text("${renderScale.toInt()}%", color = Color(0xFFC4B0FF), fontSize = 13.5.sp)
+                    Text("${renderScale.toInt()}%", color = Acc2, fontSize = 13.5.sp)
                 }
                 Slider(
                     value = renderScale,
@@ -265,7 +274,7 @@ fun ProfileScreen(app: NullApp, nav: NavController) {
                 Spacer(Modifier.height(6.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("Размер GUI", fontSize = 13.5.sp)
-                    Text(if (guiScale == 0) "Авто" else "$guiScale", color = Color(0xFFC4B0FF), fontSize = 13.5.sp)
+                    Text(if (guiScale == 0) "Авто" else "$guiScale", color = Acc2, fontSize = 13.5.sp)
                 }
                 Slider(
                     value = guiScale.toFloat(),
@@ -285,13 +294,13 @@ fun ProfileScreen(app: NullApp, nav: NavController) {
         Spacer(Modifier.height(14.dp))
 
         // ---------- место и статистика ----------
-        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF14141C))) {
+        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp)) {
                 Text("Хранилище", fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp)
                 Spacer(Modifier.height(4.dp))
                 Text(storageText.ifBlank { "—" }, fontSize = 12.sp, color = Mute)
                 Spacer(Modifier.height(8.dp))
-                HorizontalDivider(color = Color(0x14FFFFFF))
+                HorizontalDivider(color = Line)
                 Spacer(Modifier.height(8.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("Версий Minecraft: $versionsCount", fontSize = 12.sp, color = Mute)
@@ -303,12 +312,14 @@ fun ProfileScreen(app: NullApp, nav: NavController) {
         Spacer(Modifier.height(14.dp))
 
         // ---------- о приложении / логи ----------
-        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF14141C))) {
+        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp)) {
                 TextButton(onClick = { nav.navigate("logs") }, modifier = Modifier.fillMaxWidth()) {
-                    Text("📋 Логи запуска", fontSize = 13.sp, color = Color(0xFFC4B0FF))
+                    Icon(Icons.Filled.Description, null, tint = Acc2, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Логи запуска", fontSize = 13.sp, color = Acc2)
                 }
-                HorizontalDivider(color = Color(0x14FFFFFF))
+                HorizontalDivider(color = Line)
                 Column(Modifier.padding(top = 10.dp)) {
                     Text("nullLauncher Mobile ${BuildConfig.VERSION_NAME}", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                     Spacer(Modifier.height(2.dp))
@@ -334,18 +345,20 @@ private fun JavaRuntimeCard(app: NullApp) {
         javaPath = app.settings.javaPathValue()
     }
 
-    Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF14141C))) {
+    Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(16.dp)) {
             Text("Java Runtime", fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp)
             Spacer(Modifier.height(4.dp))
             if (javaPath != null) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("✅ ", fontSize = 12.sp)
+                    Icon(Icons.Filled.CheckCircle, null, tint = Ok, modifier = Modifier.size(15.dp))
+                    Spacer(Modifier.width(6.dp))
                     Text(javaPath!!, fontSize = 11.sp, color = Ok, modifier = Modifier.weight(1f))
                 }
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("⚠️ ", fontSize = 12.sp)
+                    Icon(Icons.Filled.Warning, null, tint = Warn, modifier = Modifier.size(15.dp))
+                    Spacer(Modifier.width(6.dp))
                     Text(
                         "Не найден. Для запуска Java-игры нужен JRE 17/21 (aarch64).",
                         fontSize = 11.sp, color = Warn, modifier = Modifier.weight(1f),
@@ -363,7 +376,7 @@ private fun JavaRuntimeCard(app: NullApp) {
                 },
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Скачать JRE 21 (Adoptium)", fontSize = 12.sp, color = Color(0xFFC4B0FF))
+                Text("Скачать JRE 21 (Adoptium)", fontSize = 12.sp, color = Acc2)
             }
             Spacer(Modifier.height(6.dp))
             Text(

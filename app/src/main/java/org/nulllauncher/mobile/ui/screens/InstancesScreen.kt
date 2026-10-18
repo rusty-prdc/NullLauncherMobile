@@ -18,8 +18,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -51,6 +55,8 @@ import kotlinx.coroutines.launch
 import org.nulllauncher.mobile.NullApp
 import org.nulllauncher.mobile.data.instances.Instance
 import org.nulllauncher.mobile.ui.theme.Acc
+import org.nulllauncher.mobile.ui.theme.Acc2
+import org.nulllauncher.mobile.ui.theme.AccSoft
 import org.nulllauncher.mobile.ui.theme.Card2
 import org.nulllauncher.mobile.ui.theme.Err
 import org.nulllauncher.mobile.ui.theme.Mute
@@ -96,9 +102,14 @@ fun InstancesScreen(app: NullApp, nav: NavController) {
                     Column(Modifier.padding(12.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
-                                Modifier.size(50.dp).clip(RoundedCornerShape(14.dp)).background(Card2),
+                                Modifier.size(50.dp).clip(RoundedCornerShape(14.dp)).background(AccSoft),
                                 contentAlignment = Alignment.Center,
-                            ) { Text(inst.coverEmoji, fontSize = 24.sp) }
+                            ) {
+                                Text(
+                                    inst.name.firstOrNull()?.uppercase() ?: "S",
+                                    fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Acc2,
+                                )
+                            }
                             Spacer(Modifier.width(12.dp))
                             Column(Modifier.weight(1f)) {
                                 Text(inst.name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
@@ -111,14 +122,14 @@ fun InstancesScreen(app: NullApp, nav: NavController) {
                         }
                         Spacer(Modifier.height(4.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            SmallAction("⚙ Управлять") { nav.navigate("instance/${inst.id}") }
-                            SmallAction("⧉ Копия") {
+                            SmallAction("Управлять", Icons.Filled.Settings) { nav.navigate("instance/${inst.id}") }
+                            SmallAction("Копия", Icons.Filled.ContentCopy) {
                                 scope.launch {
                                     app.instances.copy(inst.id, "${inst.name} (копия)")
                                     refresh()
                                 }
                             }
-                            SmallAction("🗑 Удалить", danger = true) { deleteTarget = inst }
+                            SmallAction("Удалить", Icons.Filled.Delete, danger = true) { deleteTarget = inst }
                         }
                     }
                 }
@@ -137,7 +148,7 @@ fun InstancesScreen(app: NullApp, nav: NavController) {
 
         AlertDialog(
             onDismissRequest = { showCreate = false },
-            containerColor = Color(0xFF16161F),
+            containerColor = MaterialTheme.colorScheme.surface,
             title = { Text("Новая сборка") },
             text = {
                 Column {
@@ -198,7 +209,7 @@ fun InstancesScreen(app: NullApp, nav: NavController) {
         var name by remember { mutableStateOf(target.name) }
         AlertDialog(
             onDismissRequest = { editTarget = null },
-            containerColor = Color(0xFF16161F),
+            containerColor = MaterialTheme.colorScheme.surface,
             title = { Text("Переименовать") },
             text = { OutlinedTextField(value = name, onValueChange = { name = it }, singleLine = true) },
             confirmButton = {
@@ -216,7 +227,7 @@ fun InstancesScreen(app: NullApp, nav: NavController) {
     deleteTarget?.let { target ->
         AlertDialog(
             onDismissRequest = { deleteTarget = null },
-            containerColor = Color(0xFF16161F),
+            containerColor = MaterialTheme.colorScheme.surface,
             title = { Text("Удалить сборку?") },
             text = { Text("«${target.name}» и все её моды, миры и настройки будут удалены безвозвратно.") },
             confirmButton = {
@@ -232,8 +243,10 @@ fun InstancesScreen(app: NullApp, nav: NavController) {
 }
 
 @Composable
-private fun SmallAction(label: String, danger: Boolean = false, onClick: () -> Unit) {
+private fun SmallAction(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, danger: Boolean = false, onClick: () -> Unit) {
     TextButton(onClick = onClick) {
+        Icon(icon, null, tint = if (danger) Err else Mute, modifier = Modifier.size(14.dp))
+        Spacer(Modifier.width(4.dp))
         Text(label, fontSize = 11.sp, color = if (danger) Err else Mute)
     }
 }

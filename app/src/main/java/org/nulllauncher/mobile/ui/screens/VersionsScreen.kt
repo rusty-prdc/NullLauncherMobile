@@ -18,6 +18,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Science
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -52,6 +54,7 @@ import org.nulllauncher.mobile.ui.theme.Card2
 import org.nulllauncher.mobile.ui.theme.Mute
 import org.nulllauncher.mobile.ui.theme.Ok
 import org.nulllauncher.mobile.ui.theme.Warn
+import org.nulllauncher.mobile.ui.theme.Line
 
 /**
  * Менеджер версий: официальный манифест Mojang, фильтры релизы/снапшоты,
@@ -88,7 +91,7 @@ fun VersionsScreen(app: NullApp, nav: NavController) {
             modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)),
             singleLine = true,
             colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color(0xFF14141C), unfocusedContainerColor = Color(0xFF14141C),
+                focusedContainerColor = MaterialTheme.colorScheme.surface, unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                 focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent,
             ),
         )
@@ -107,14 +110,20 @@ fun VersionsScreen(app: NullApp, nav: NavController) {
             .filter { query.isBlank() || it.id.contains(query, ignoreCase = true) }
 
         LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
-            items(shown) { v ->
-                val installed = app.versions.isInstalled(v.id)
+            items(shown) { v ->                val installed = app.versions.isInstalled(v.id)
                 Card(shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
                     Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             Modifier.size(42.dp).clip(RoundedCornerShape(12.dp)).background(Card2),
                             contentAlignment = Alignment.Center,
-                        ) { Text(if (v.type == "release") "🟩" else "🧪", fontSize = 20.sp) }
+                        ) {
+                            Icon(
+                                if (v.type == "release") Icons.Filled.CheckCircle else Icons.Filled.Science,
+                                null,
+                                tint = if (v.type == "release") Ok else Warn,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) {
                             Text(v.id, fontWeight = FontWeight.Bold, fontSize = 13.5.sp)
@@ -158,7 +167,7 @@ fun VersionsScreen(app: NullApp, nav: NavController) {
                                     }
                                 }
                             }) {
-                                Text("Установить", fontSize = 12.sp, color = Color(0xFFC4B0FF))
+                                Text("Установить", fontSize = 12.sp, color = Acc2)
                             }
                         }
                     }
@@ -168,18 +177,3 @@ fun VersionsScreen(app: NullApp, nav: NavController) {
     }
 }
 
-@Composable
-fun FilterChip(text: String, selected: Boolean, onClick: () -> Unit) {
-    Box(
-        Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(if (selected) Acc.copy(alpha = .2f) else Card2)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 7.dp),
-    ) {
-        Text(
-            text, fontSize = 12.sp,
-            color = if (selected) Color(0xFFC4B0FF) else MaterialTheme.colorScheme.onBackground,
-        )
-    }
-}

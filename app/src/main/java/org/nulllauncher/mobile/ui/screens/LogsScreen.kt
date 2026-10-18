@@ -42,6 +42,9 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import org.nulllauncher.mobile.ui.theme.Acc2
+import org.nulllauncher.mobile.ui.theme.Txt
+import org.nulllauncher.mobile.ui.theme.Acc
 
 /**
  * Логи запусков: список файлов + просмотр с копированием/очисткой.
@@ -84,7 +87,7 @@ fun LogsScreen(app: NullApp, nav: NavController) {
                 items(files, key = { it.absolutePath }) { f ->
                     Card(
                         shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF14141C)),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                         modifier = Modifier.fillMaxWidth().clickable { openFile = f },
                     ) {
                         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -113,7 +116,7 @@ fun LogsScreen(app: NullApp, nav: NavController) {
         }
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { openFile = null },
-            containerColor = Color(0xFF16161F),
+            containerColor = MaterialTheme.colorScheme.surface,
             title = { Text(f.name, fontSize = 14.sp) },
             text = {
                 LazyColumn {
@@ -122,14 +125,14 @@ fun LogsScreen(app: NullApp, nav: NavController) {
                             text,
                             fontSize = 10.sp,
                             fontFamily = FontFamily.Monospace,
-                            color = Color(0xFFB0B0C0),
+                            color = Txt,
                         )
                     }
                 }
             },
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = { openFile = null }) {
-                    Text("Закрыть", color = Color(0xFFC4B0FF))
+                    Text("Закрыть", color = Acc2)
                 }
             },
         )

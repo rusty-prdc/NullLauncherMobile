@@ -18,6 +18,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -60,6 +62,8 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import org.nulllauncher.mobile.ui.theme.Acc2
+import org.nulllauncher.mobile.ui.theme.AccSoft
 
 /**
  * Карточка сборки: моды (вкл/выкл/удалить), память сборки, переименование,
@@ -113,7 +117,9 @@ fun InstanceDetailScreen(app: NullApp, nav: NavController, instanceId: String) {
                     fontSize = 11.sp, color = Mute,
                 )
             }
-            IconButton(onClick = { showRename = true }) { Text("✏️", fontSize = 16.sp) }
+            IconButton(onClick = { showRename = true }) {
+                Icon(Icons.Filled.Edit, "Переименовать", tint = Mute, modifier = Modifier.size(18.dp))
+            }
             IconButton(onClick = { showDeleteInstance = true }) {
                 Icon(Icons.Filled.Delete, "Удалить сборку", tint = Err)
             }
@@ -125,7 +131,7 @@ fun InstanceDetailScreen(app: NullApp, nav: NavController, instanceId: String) {
         ) {
             item {
                 message?.let {
-                    Card(shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF1D2A1D))) {
+                    Card(shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = AccSoft)) {
                         Text(it, Modifier.padding(10.dp), fontSize = 12.sp, color = Ok)
                     }
                 }
@@ -133,11 +139,11 @@ fun InstanceDetailScreen(app: NullApp, nav: NavController, instanceId: String) {
 
             // память сборки
             item {
-                Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF14141C))) {
+                Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                     Column(Modifier.padding(14.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Память этой сборки", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                            Text("${(newMemory / 1024f).let { "%.1f".format(it) }} ГБ", color = Color(0xFFC4B0FF), fontSize = 13.sp)
+                            Text("${(newMemory / 1024f).let { "%.1f".format(it) }} ГБ", color = Acc2, fontSize = 13.sp)
                         }
                         Slider(
                             value = newMemory.coerceIn(512f, maxMemory.toFloat()),
@@ -156,7 +162,7 @@ fun InstanceDetailScreen(app: NullApp, nav: NavController, instanceId: String) {
 
             // статистика
             item {
-                Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF14141C))) {
+                Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                     Column(Modifier.padding(14.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Модов: ${mods.size}", fontSize = 12.sp, color = Mute)
@@ -196,7 +202,7 @@ fun InstanceDetailScreen(app: NullApp, nav: NavController, instanceId: String) {
             items(mods, key = { it.absolutePath }) { f ->
                 val enabled = !f.name.endsWith(".disabled")
                 val baseName = f.name.removeSuffix(".disabled")
-                Card(shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF14141C))) {
+                Card(shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                     Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f).clickable {
                             ModrinthService.toggle(Storage.instanceMods(app, inst.id), baseName, !enabled)
@@ -233,7 +239,7 @@ fun InstanceDetailScreen(app: NullApp, nav: NavController, instanceId: String) {
     if (showRename) {
         AlertDialog(
             onDismissRequest = { showRename = false },
-            containerColor = Color(0xFF16161F),
+            containerColor = MaterialTheme.colorScheme.surface,
             title = { Text("Переименовать сборку", fontSize = 15.sp) },
             text = {
                 OutlinedTextField(
@@ -266,7 +272,7 @@ fun InstanceDetailScreen(app: NullApp, nav: NavController, instanceId: String) {
     showDeleteMod?.let { f ->
         AlertDialog(
             onDismissRequest = { showDeleteMod = null },
-            containerColor = Color(0xFF16161F),
+            containerColor = MaterialTheme.colorScheme.surface,
             title = { Text("Удалить мод?", fontSize = 15.sp) },
             text = { Text(f.name, fontSize = 12.sp, color = Mute) },
             confirmButton = {
@@ -286,7 +292,7 @@ fun InstanceDetailScreen(app: NullApp, nav: NavController, instanceId: String) {
     if (showDeleteInstance) {
         AlertDialog(
             onDismissRequest = { showDeleteInstance = false },
-            containerColor = Color(0xFF16161F),
+            containerColor = MaterialTheme.colorScheme.surface,
             title = { Text("Удалить сборку?", fontSize = 15.sp) },
             text = {
                 Text(
