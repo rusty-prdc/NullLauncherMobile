@@ -112,7 +112,7 @@ private fun ActionButton(act: CrashAction, app: NullApp, nav: NavController) {
     val label = when (act) {
         is CrashAction.SetRam -> "Поднять до ${act.mb / 1024} ГБ"
         is CrashAction.InstallMod -> "Установить ${act.title}"
-        CrashAction.InstallJava -> "Переустановить Java"
+        CrashAction.InstallJava -> "Установить Java в профиле"
         CrashAction.Login -> "Перелогиниться"
         CrashAction.OpenCatalog -> "Каталог"
         CrashAction.ReinstallVersion -> "Переустановить версию"
@@ -130,7 +130,8 @@ private fun ActionButton(act: CrashAction, app: NullApp, nav: NavController) {
                     app.pendingCatalogQuery.value = act.slug
                     nav.navigate("catalog")
                 }
-                CrashAction.InstallJava, CrashAction.Login -> nav.navigate("profile")
+                CrashAction.InstallJava -> nav.navigate("profile") // карточка Java Runtime — установка там
+        CrashAction.Login -> nav.navigate("profile")
                 CrashAction.OpenCatalog -> nav.navigate("catalog")
                 CrashAction.ReinstallVersion -> nav.navigate("versions")
             }

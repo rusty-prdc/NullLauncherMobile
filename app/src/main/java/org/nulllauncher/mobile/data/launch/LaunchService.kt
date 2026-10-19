@@ -143,7 +143,7 @@ class LaunchService(private val ctx: Context) {
             _state.value = LaunchState.Preparing("Запуск JVM")
 
             // ---------- Stage B: запуск ВНУТРИ процесса через JNI-мост ----------
-            val libjvm = findLibJvm()
+            val libjvm = findLibJvm(JreInstaller.normalize(requiredJava))
             if (libjvm != null && NativeBridge.ensureLoaded()) {
                 val mainIdx = args.indexOf(mainClass)
                 val gameArgs = if (mainIdx >= 0 && mainIdx + 1 < args.size) args.subList(mainIdx + 1, args.size).toTypedArray()
@@ -236,22 +236,30 @@ class LaunchService(private val ctx: Context) {
      * JRE скачивается из публичных сборок OpenJDK для Android с прогрессом на главной.
      */
     private suspend fun resolveOrInstallJava(javaPath: String?, requiredMajor: Int, onLog: ((String) -> Unit)?): String {
-        resolveJava(javaPath)?.let { return it }
+        // пользовательская Java вне нашей папки runtimes — уважаем
+        javaPath?.let {
+            val f = File(it)
+            if (f.exists() && !f.absolutePath.startsWith(Storage.runtimes(ctx).absolutePath)) return it
+        }
+        val major = JreInstaller.normalize(requiredMajor)
+        JreInstaller.installedJava(ctx, major)?.let { return it }
 
         val app = org.nulllauncher.mobile.NullApp.instance
-        onLog?.invoke("Java не найдена — скачиваю Java $requiredMajor для Android…")
-        val path = JreInstaller.install(ctx, requiredMajor) { stage, done, total ->
-            app.installProgress.value = org.nulllauncher.mobile.InstallProgress(stage, done, total)
-            _state.value = LaunchState.Preparing(stage)
+        onLog?.invoke("Java $major не найдена — скачиваю для Android…")
+        try {
+            val path = JreInstaller.install(ctx, major) { stage, done, total ->
+                app.installProgress.value = org.nulllauncher.mobile.InstallProgress(stage, done, total)
+                _state.value = LaunchState.Preparing(stage)
+            }
+            onLog?.invoke("Java $major установлена: $path")
+            return path
+        } finally {
+            app.installProgress.value = null
         }
-        app.installProgress.value = null
-        app.settings.setJavaPath(path) // запоминаем, чтобы больше не спрашивать
-        onLog?.invoke("Java $requiredMajor установлена: $path")
-        return path
     }
 
-    /** Поиск libjvm.so внутри установленных runtimes/ (Stage B) */
-    private fun findLibJvm(): String? {
+    /** Поиск libjvm.so в runtimes/jre<major> (Stage B) */
+    private fun findLibJvm(major: Int): String? {
         fun walk(dir: File, depth: Int): String? {
             if (depth > 6) return null
             dir.listFiles()?.forEach { f ->
@@ -263,25 +271,7 @@ class LaunchService(private val ctx: Context) {
             }
             return null
         }
-        Storage.runtimes(ctx).listFiles()?.forEach { root ->
-            walk(root, 0)?.let { return it }
-        }
-        return null
-    }
-
-    /** Путь к java: из настроек, либо авто-поиск в runtimes/ */
-    private fun resolveJava(javaPath: String?): String? {
-        javaPath?.let { if (File(it).canExecute() || File(it).exists()) return it }
-        // авто-поиск: runtimes/<any>/bin/java[.exe]
-        Storage.runtimes(ctx).listFiles()?.forEach { dir ->
-            listOf("bin/java", "bin/java.exe", "java", "java.exe").forEach { rel ->
-                val f = File(dir, rel)
-                if (f.exists()) return f.absolutePath
-            }
-            // структура jre17-<arch>/bin/java (распаковка TarXz)
-            TarXz.findJavaBinary(dir)?.let { return it.absolutePath }
-        }
-        return null
+        return walk(JreInstaller.dirFor(ctx, major), 0)
     }
 
     private fun buildClasspath(vararg vjs: VersionJson?): String {

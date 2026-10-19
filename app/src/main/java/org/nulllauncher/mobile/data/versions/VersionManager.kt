@@ -29,9 +29,9 @@ class VersionManager(private val ctx: Context) {
         fun requiredJavaMajor(vj: VersionJson): Int =
             vj.javaVersion?.majorVersion?.let { when {
                 it <= 8 -> 8
-                it <= 16 -> 16
                 it <= 17 -> 17
-                else -> 21
+                it <= 21 -> 21
+                else -> 25
             } } ?: 17
     }
 

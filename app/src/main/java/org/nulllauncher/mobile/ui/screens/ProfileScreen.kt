@@ -1,4 +1,4 @@
-package org.nulllauncher.mobile.ui.screens
+﻿package org.nulllauncher.mobile.ui.screens
 
 import android.content.Intent
 import android.net.Uri
@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -44,6 +45,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -462,126 +464,90 @@ fun ProfileScreen(app: NullApp, nav: NavController) {
 }
 
 /**
- * Карточка Java Runtime: авто-установка одной кнопкой —
- * качаем OpenJDK 17 для Android из публичных сборок
- * и распаковываем в runtimes/. Прогресс прямо в карточке.
+ * Карточка Java Runtime: по строке на каждую версию (8 / 17 / 21 / 25).
+ * Нужная версия ставится автоматически при запуске, здесь — ручная установка/переустановка.
  */
 @Composable
 private fun JavaRuntimeCard(app: NullApp) {
     val scope = rememberCoroutineScope()
-    var javaPath by remember { mutableStateOf<String?>(null) }
-    var installing by remember { mutableStateOf(false) }
-    var stage by remember { mutableStateOf("") }
-    var progress by remember { mutableStateOf(0f) } // -1 = неизвестный размер
-    var error by remember { mutableStateOf<String?>(null) }
+    var installed by remember { mutableStateOf<List<Int>>(emptyList()) }
 
-    LaunchedEffect(Unit) {
-        javaPath = app.settings.currentJavaPath()
-            ?: org.nulllauncher.mobile.data.runtime.JreInstaller.installedJava(app)
+    val busy by org.nulllauncher.mobile.data.runtime.JreInstaller.busyMajor.collectAsState()
+    val stage by org.nulllauncher.mobile.data.runtime.JreInstaller.busyStage.collectAsState()
+    val progress by org.nulllauncher.mobile.data.runtime.JreInstaller.busyProgress.collectAsState()
+    val error by org.nulllauncher.mobile.data.runtime.JreInstaller.lastError.collectAsState()
+
+    fun refresh() {
+        installed = org.nulllauncher.mobile.data.runtime.JreInstaller.installedMajors(app)
+    }
+    LaunchedEffect(Unit) { refresh() }
+    // когда установка завершилась — перечитать список установленных
+    LaunchedEffect(busy) { if (busy == null) refresh() }
+
+    fun install(major: Int) {
+        org.nulllauncher.mobile.data.runtime.JreInstaller.installShared(app, major)
     }
 
     Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(16.dp)) {
             Text("Java Runtime", fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp)
-            Spacer(Modifier.height(4.dp))
-            if (javaPath != null) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.CheckCircle, null, tint = Ok, modifier = Modifier.size(15.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        "Установлена (OpenJDK 17 для Android)",
-                        fontSize = 11.5.sp, color = Ok, modifier = Modifier.weight(1f),
-                    )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                "Нужная версия ставится сама при запуске игры. Здесь можно поставить или переустановить вручную.",
+                fontSize = 11.sp, color = Mute,
+            )
+            Spacer(Modifier.height(8.dp))
+            org.nulllauncher.mobile.data.runtime.JreInstaller.SUPPORTED.forEach { major ->
+                val has = major in installed
+                val hint = when (major) {
+                    8 -> "Minecraft до 1.16"
+                    17 -> "1.17 – 1.20.4"
+                    21 -> "1.20.5 – 1.21.x"
+                    else -> "26.x и новее"
                 }
-                Spacer(Modifier.height(2.dp))
-                Text(javaPath!!, fontSize = 10.sp, color = Mute, maxLines = 1)
-            } else if (!installing) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.Warning, null, tint = Warn, modifier = Modifier.size(15.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        "Не установлена. Нужна для запуска игры — ставится автоматически.",
-                        fontSize = 11.sp, color = Warn, modifier = Modifier.weight(1f),
+                Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        if (has) Icons.Filled.CheckCircle else Icons.Filled.Warning, null,
+                        tint = if (has) Ok else Mute, modifier = Modifier.size(15.dp),
                     )
+                    Spacer(Modifier.width(8.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Java $major", fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+                        Text(hint, fontSize = 10.5.sp, color = Mute)
+                    }
+                    OutlinedButton(
+                        onClick = { install(major) },
+                        enabled = busy == null,
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                    ) {
+                        Text(
+                            if (busy == major) "Установка…" else if (has) "Переустановить" else "Установить",
+                            fontSize = 11.5.sp, color = Acc2,
+                        )
+                    }
                 }
             }
 
-            if (installing) {
-                Spacer(Modifier.height(10.dp))
+            if (busy != null) {
+                Spacer(Modifier.height(8.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(stage, fontSize = 11.sp, color = Acc2, modifier = Modifier.weight(1f))
                     if (progress >= 0) Text("${(progress * 100).toInt()}%", fontSize = 11.sp, color = Acc2)
                 }
                 Spacer(Modifier.height(6.dp))
-                LinearProgressIndicator(
-                    progress = { progress.coerceIn(0f, 1f) },
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp)),
-                )
+                if (progress >= 0) {
+                    LinearProgressIndicator(
+                        progress = { progress.coerceIn(0f, 1f) },
+                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp)),
+                    )
+                } else {
+                    LinearProgressIndicator(Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp)))
+                }
             }
-
             error?.let {
                 Spacer(Modifier.height(6.dp))
-                Text(it, fontSize = 11.sp, color = Err, maxLines = 3)
+                Text(it, fontSize = 11.sp, color = Err, maxLines = 4)
             }
-
-            Spacer(Modifier.height(10.dp))
-            if (javaPath == null) {
-                Button(
-                    onClick = {
-                        if (installing) return@Button
-                        scope.launch {
-                            installing = true
-                            error = null
-                            try {
-                                val path = org.nulllauncher.mobile.data.runtime.JreInstaller.install(app, 17) { st, done, total ->
-                                    stage = st
-                                    progress = if (total > 0) done.toFloat() / total else -1f
-                                }
-                                app.settings.setJavaPath(path)
-                                javaPath = path
-                            } catch (e: Exception) {
-                                error = e.message ?: "Не удалось скачать Java"
-                            }
-                            installing = false
-                        }
-                    },
-                    enabled = !installing,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = Acc),
-                ) {
-                    if (installing) {
-                        Text("Установка…", fontSize = 13.sp, color = Color.White)
-                    } else {
-                        Icon(Icons.Filled.Download, null, tint = Color.White, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Установить Java 17 (автоматически)", fontSize = 13.sp, color = Color.White)
-                    }
-                }
-            } else {
-                OutlinedButton(
-                    onClick = {
-                        scope.launch {
-                            try {
-                                org.nulllauncher.mobile.data.runtime.JreInstaller.install(app, 17).let {
-                                    app.settings.setJavaPath(it)
-                                    javaPath = it
-                                }
-                            } catch (e: Exception) {
-                                error = e.message ?: "Ошибка переустановки"
-                            }
-                        }
-                    },
-                    enabled = !installing,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("Переустановить", fontSize = 12.sp, color = Acc2)
-                }
-            }
-            Spacer(Modifier.height(6.dp))
-            Text(
-                "Источник: публичные сборки OpenJDK для Android (aarch64/armeabi/x86_64). Архив .tar.xz распаковывается в runtimes/ автоматически.",
-                fontSize = 10.5.sp, color = Mute,
-            )
         }
     }
 }
