@@ -506,25 +506,32 @@ private fun JavaRuntimeCard(app: NullApp) {
                     else -> "26.x и новее"
                 }
                 Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        if (has) Icons.Filled.CheckCircle else Icons.Filled.Warning, null,
-                        tint = if (has) Ok else Mute, modifier = Modifier.size(15.dp),
-                    )
-                    Spacer(Modifier.width(8.dp))
+                    Box(
+                        Modifier.size(30.dp).clip(RoundedCornerShape(9.dp))
+                            .background(
+                                when (major) {
+                                    8 -> androidx.compose.ui.graphics.Color(0xFFE08A1F)
+                                    17 -> androidx.compose.ui.graphics.Color(0xFF3F6FD1)
+                                    21 -> androidx.compose.ui.graphics.Color(0xFF128A50)
+                                    else -> androidx.compose.ui.graphics.Color(0xFF7C5CD6)
+                                }
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text("$major", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                    Spacer(Modifier.width(10.dp))
                     Column(Modifier.weight(1f)) {
                         Text("Java $major", fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
                         Text(hint, fontSize = 10.5.sp, color = Mute)
                     }
-                    OutlinedButton(
-                        onClick = { install(major) },
+                    org.nulllauncher.mobile.ui.theme.GradButton(
+                        text = if (busy == major) "Установка…" else if (has) "Переустановить" else "Установить",
                         enabled = busy == null,
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                    ) {
-                        Text(
-                            if (busy == major) "Установка…" else if (has) "Переустановить" else "Установить",
-                            fontSize = 11.5.sp, color = Acc2,
-                        )
-                    }
+                        height = 34.dp,
+                        fontSize = 11.sp,
+                        onClick = { install(major) },
+                    )
                 }
             }
 

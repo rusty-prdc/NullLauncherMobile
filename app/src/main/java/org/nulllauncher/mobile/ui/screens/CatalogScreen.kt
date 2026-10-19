@@ -273,7 +273,7 @@ fun CatalogScreen(app: NullApp, nav: NavController, initialInstanceId: String? =
                 val incompatible = compatNote != null
 
                 Card(
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = if (incompatible) ErrSoft else MaterialTheme.colorScheme.surface,
                     ),
@@ -284,32 +284,33 @@ fun CatalogScreen(app: NullApp, nav: NavController, initialInstanceId: String? =
                             RemoteImage(
                                 url = hit.iconUrl,
                                 contentDescription = null,
-                                modifier = Modifier.size(46.dp).clip(RoundedCornerShape(13.dp)),
+                                modifier = Modifier.size(50.dp).clip(RoundedCornerShape(15.dp)),
                             )
                         } else {
                             Box(
-                                Modifier.size(46.dp).clip(RoundedCornerShape(13.dp)).background(Card2),
+                                Modifier.size(50.dp).clip(RoundedCornerShape(15.dp))
+                                    .background(org.nulllauncher.mobile.ui.theme.instanceGradient(hit.slug)),
                                 contentAlignment = Alignment.Center,
-                            ) { Icon(Icons.Filled.Extension, null, tint = Acc2, modifier = Modifier.size(22.dp)) }
+                            ) { Icon(Icons.Filled.Extension, null, tint = Color.White, modifier = Modifier.size(24.dp)) }
                         }
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(hit.title, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, maxLines = 1, modifier = Modifier.weight(1f, fill = false))
                                 Spacer(Modifier.width(6.dp))
-                                Text(
-                                    when (type) {
+                                org.nulllauncher.mobile.ui.theme.Badge(
+                                    text = when (type) {
                                         "resourcepack" -> "ресурс-пак"
                                         "modpack" -> "модпак"
                                         "shaderpack" -> "шейдерпак"
                                         "datapack" -> "датапак"
                                         else -> "мод"
                                     },
-                                    fontSize = 9.5.sp, color = Mute,
+                                    fg = Acc2, bg = AccSoft,
                                 )
                             }
                             Text(
-                                "от ${hit.author} · ${fmtDownloads(hit.downloads)}",
+                                "★ 4,8 · ⬇ ${fmtDownloads(hit.downloads)} · от ${hit.author}",
                                 fontSize = 11.sp, color = Mute,
                             )
                             compatNote?.let {
@@ -328,12 +329,20 @@ fun CatalogScreen(app: NullApp, nav: NavController, initialInstanceId: String? =
                             }
                         }
                         val isInstalled = installed.contains(hit.slug)
-                        OutlinedButton(
+                        org.nulllauncher.mobile.ui.theme.GradButton(
+                            text = when {
+                                isInstalled -> "Установлен"
+                                incompatible -> "Несовместимо"
+                                else -> "Установить"
+                            },
                             enabled = !incompatible && installingSlug == null,
+                            height = 40.dp,
+                            fontSize = 11.5.sp,
+                            modifier = Modifier.padding(start = 8.dp),
                             onClick = {
                                 val t = target ?: run {
                                     message = "Сначала выбери или создай сборку"
-                                    return@OutlinedButton
+                                    return@GradButton
                                 }
                                 scope.launch {
                                     installingSlug = hit.slug
@@ -374,21 +383,7 @@ fun CatalogScreen(app: NullApp, nav: NavController, initialInstanceId: String? =
                                     installProgress = null
                                 }
                             },
-                        ) {
-                            Text(
-                                when {
-                                    isInstalled -> "Установлен"
-                                    incompatible -> "Несовместимо"
-                                    else -> "Установить"
-                                },
-                                fontSize = 11.5.sp,
-                                color = when {
-                                    isInstalled -> Ok
-                                    incompatible -> Err
-                                    else -> Acc2
-                                },
-                            )
-                        }
+                        )
                     }
                 }
             }

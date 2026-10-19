@@ -27,11 +27,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import org.nulllauncher.mobile.ui.theme.Acc
+import org.nulllauncher.mobile.ui.theme.Acc2
+import org.nulllauncher.mobile.ui.theme.AccSoft
 
 private data class Tab(val route: String, val title: String, val on: ImageVector, val off: ImageVector)
 
@@ -43,35 +45,43 @@ private val tabs = listOf(
     Tab("profile", "Профиль", Icons.Filled.Person, Icons.Outlined.Person),
 )
 
+/**
+ * Нижняя навигация в стиле макета: плавающая пилюля с мягкой тенью,
+ * активная вкладка — в мятной «таблетке».
+ */
 @Composable
 fun BottomBar(current: String, onSelect: (String) -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = .95f))
-            .padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceAround,
+            .padding(horizontal = 12.dp, vertical = 10.dp)
+            .shadow(14.dp, RoundedCornerShape(28.dp), spotColor = androidx.compose.ui.graphics.Color(0x22123121))
+            .clip(RoundedCornerShape(28.dp))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = .97f))
+            .padding(horizontal = 8.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         tabs.forEach { tab ->
             val selected = current == tab.route
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(if (selected) AccSoft else androidx.compose.ui.graphics.Color.Transparent)
                     .clickable { onSelect(tab.route) }
-                    .padding(horizontal = 14.dp, vertical = 4.dp),
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
             ) {
                 Icon(
                     imageVector = if (selected) tab.on else tab.off,
                     contentDescription = tab.title,
-                    tint = if (selected) Acc else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(23.dp),
+                    tint = if (selected) Acc2 else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(22.dp),
                 )
                 Text(
                     tab.title,
-                    fontSize = 10.sp,
+                    fontSize = 9.5.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (selected) Acc else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (selected) Acc2 else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }

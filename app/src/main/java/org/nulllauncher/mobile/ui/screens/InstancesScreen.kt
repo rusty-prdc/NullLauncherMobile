@@ -119,12 +119,13 @@ fun InstancesScreen(app: NullApp, nav: NavController) {
                     Column(Modifier.padding(12.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
-                                Modifier.size(50.dp).clip(RoundedCornerShape(14.dp)).background(AccSoft),
+                                Modifier.size(50.dp).clip(RoundedCornerShape(15.dp))
+                                    .background(org.nulllauncher.mobile.ui.theme.instanceGradient(inst.id)),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Text(
                                     inst.name.firstOrNull()?.uppercase() ?: "S",
-                                    fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Acc2,
+                                    fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.White,
                                 )
                             }
                             Spacer(Modifier.width(12.dp))

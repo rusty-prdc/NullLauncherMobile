@@ -1,6 +1,7 @@
 package org.nulllauncher.mobile.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -62,7 +63,9 @@ import org.nulllauncher.mobile.ui.theme.AccSoft
 import org.nulllauncher.mobile.ui.theme.Card2
 import org.nulllauncher.mobile.ui.theme.Err
 import org.nulllauncher.mobile.ui.theme.ErrSoft
+import org.nulllauncher.mobile.ui.theme.Line
 import org.nulllauncher.mobile.ui.theme.Mute
+import org.nulllauncher.mobile.ui.theme.Ok
 import org.nulllauncher.mobile.ui.theme.Warn
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -112,10 +115,24 @@ fun HomeScreen(app: NullApp, nav: NavController) {
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         // ---------- шапка ----------
         Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(AccSoft),
-                contentAlignment = Alignment.Center,
-            ) { Icon(Icons.Filled.Person, null, tint = Acc2, modifier = Modifier.size(20.dp)) }
+            Box {
+                Box(
+                    Modifier.size(42.dp).clip(RoundedCornerShape(14.dp))
+                        .background(org.nulllauncher.mobile.ui.theme.AccGradDeep),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        (account?.name ?: "Г").firstOrNull()?.uppercase() ?: "Г",
+                        color = Color.White, fontWeight = FontWeight.Bold, fontSize = 17.sp,
+                    )
+                }
+                // точка «онлайн»
+                Box(
+                    Modifier.align(Alignment.BottomEnd).size(11.dp)
+                        .clip(RoundedCornerShape(999.dp)).background(Ok)
+                        .border(2.dp, MaterialTheme.colorScheme.background, RoundedCornerShape(999.dp)),
+                )
+            }
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
                 Text(account?.name ?: "Гость", fontWeight = FontWeight.Bold, fontSize = 14.sp)
@@ -161,12 +178,13 @@ fun HomeScreen(app: NullApp, nav: NavController) {
                 Column(Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
-                            Modifier.size(54.dp).clip(RoundedCornerShape(15.dp)).background(AccSoft),
+                            Modifier.size(56.dp).clip(RoundedCornerShape(18.dp))
+                                .background(org.nulllauncher.mobile.ui.theme.instanceGradient(inst.id)),
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
                                 inst.name.firstOrNull()?.uppercase() ?: "S",
-                                fontWeight = FontWeight.Bold, fontSize = 24.sp, color = Acc2,
+                                fontWeight = FontWeight.Bold, fontSize = 24.sp, color = Color.White,
                             )
                         }
                         Spacer(Modifier.width(12.dp))
@@ -202,25 +220,30 @@ fun HomeScreen(app: NullApp, nav: NavController) {
                     }
                     Spacer(Modifier.height(12.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Button(
-                            onClick = { launch(inst) },
-                            modifier = Modifier.weight(1f).height(52.dp),
-                            shape = RoundedCornerShape(18.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Acc),
-                            enabled = !busy,
+                        Box(
+                            Modifier.weight(1f).height(52.dp).clip(RoundedCornerShape(18.dp))
+                                .background(
+                                    if (busy) androidx.compose.ui.graphics.SolidColor(Card2)
+                                    else org.nulllauncher.mobile.ui.theme.AccGrad
+                                )
+                                .clickable(enabled = !busy) { launch(inst) },
+                            contentAlignment = Alignment.Center,
                         ) {
-                            if (!busy) {
-                                Icon(Icons.Filled.PlayArrow, null, tint = Color.White, modifier = Modifier.size(22.dp))
-                                Spacer(Modifier.width(6.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (!busy) {
+                                    Icon(Icons.Filled.PlayArrow, null, tint = Color.White, modifier = Modifier.size(22.dp))
+                                    Spacer(Modifier.width(6.dp))
+                                }
+                                Text(
+                                    when (launcherState) {
+                                        is LaunchState.Preparing -> "Запуск…"
+                                        is LaunchState.Running -> "Игра идёт"
+                                        else -> "Играть"
+                                    },
+                                    fontWeight = FontWeight.Bold, fontSize = 17.sp,
+                                    color = if (busy) Mute else Color.White,
+                                )
                             }
-                            Text(
-                                when (launcherState) {
-                                    is LaunchState.Preparing -> "Запуск…"
-                                    is LaunchState.Running -> "Игра идёт"
-                                    else -> "Играть"
-                                },
-                                fontWeight = FontWeight.Bold, fontSize = 17.sp,
-                            )
                         }
                     }
                     if (launcherState is LaunchState.Running || launcherState is LaunchState.Preparing) {
@@ -331,24 +354,28 @@ private fun InstanceRow(
     onPlay: () -> Unit,
 ) {
     Card(
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (active) AccSoft else MaterialTheme.colorScheme.surface,
         ),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(
+                if (active) Modifier.border(1.5.dp, Acc.copy(alpha = .45f), RoundedCornerShape(20.dp))
+                else Modifier
+            ),
         onClick = onOpen,
     ) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
-                Modifier.size(46.dp).clip(RoundedCornerShape(13.dp)).background(
-                    if (active) Acc else MaterialTheme.colorScheme.surfaceVariant,
-                ),
+                Modifier.size(48.dp).clip(RoundedCornerShape(15.dp))
+                    .background(org.nulllauncher.mobile.ui.theme.instanceGradient(inst.id)),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     inst.name.firstOrNull()?.uppercase() ?: "S",
-                    fontWeight = FontWeight.Bold, fontSize = 18.sp,
-                    color = if (active) Color.White else Acc2,
+                    fontWeight = FontWeight.Bold, fontSize = 19.sp,
+                    color = Color.White,
                 )
             }
             Spacer(Modifier.width(12.dp))
@@ -359,12 +386,20 @@ private fun InstanceRow(
                     fontSize = 10.5.sp, color = Mute, maxLines = 1,
                 )
             }
-            IconButton(onClick = onPlay, enabled = !busy) {
+            Box(
+                Modifier.size(42.dp).clip(RoundedCornerShape(999.dp))
+                    .background(
+                        if (active) org.nulllauncher.mobile.ui.theme.AccGrad
+                        else androidx.compose.ui.graphics.SolidColor(AccSoft)
+                    )
+                    .clickable(enabled = !busy) { onPlay() },
+                contentAlignment = Alignment.Center,
+            ) {
                 Icon(
                     Icons.Filled.PlayArrow,
                     "Играть: ${inst.name}",
-                    tint = if (busy) Mute else Acc2,
-                    modifier = Modifier.size(28.dp),
+                    tint = if (active) Color.White else Acc2,
+                    modifier = Modifier.size(24.dp),
                 )
             }
         }
@@ -380,10 +415,19 @@ fun Chip(text: String, primary: Boolean = false) {
     Box(
         Modifier
             .clip(RoundedCornerShape(999.dp))
-            .background(if (primary) AccSoft else MaterialTheme.colorScheme.surfaceVariant)
+            .background(if (primary) AccSoft else MaterialTheme.colorScheme.surface)
+            .border(
+                1.dp,
+                if (primary) Acc.copy(alpha = .35f) else Line,
+                RoundedCornerShape(999.dp),
+            )
             .padding(horizontal = 12.dp, vertical = 6.dp),
     ) {
-        Text(text, fontSize = 11.5.sp, color = if (primary) Acc2 else Mute)
+        Text(
+            text,
+            fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold,
+            color = if (primary) Acc2 else Color(0xFF3D5348),
+        )
     }
 }
 
