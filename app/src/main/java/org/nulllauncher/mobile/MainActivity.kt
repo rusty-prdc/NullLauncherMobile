@@ -138,7 +138,8 @@ private fun MainNav() {
 
     androidx.compose.foundation.layout.Column(Modifier.fillMaxSize()) {
         androidx.compose.foundation.layout.Box(Modifier.weight(1f)) {
-            NavHost(navController = nav, startDestination = "home") {
+            NavHost(navController = nav, startDestination = "web") {
+                composable("web") { org.nulllauncher.mobile.ui.web.WebScreen(app, nav) }
                 composable("home") { HomeScreen(app, nav) }
                 composable("instances") { InstancesScreen(app, nav) }
                 composable("versions") { VersionsScreen(app, nav) }

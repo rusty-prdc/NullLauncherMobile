@@ -1,0 +1,967 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>nullLauncher</title>
+<style>
+:root{
+  --bg:#F4F7F5; --card:#fff; --card2:#EEF3F0; --line:#E2E9E5;
+  --txt:#16241D; --mute:#7E968B; --acc:#2FBF71; --acc2:#1FA35E;
+  --acc-soft:#E3F7EC; --acc-line:#BDEBD2; --warn:#E08A1F; --warn-soft:#FCF0DE;
+  --err:#DE4D4D; --err-soft:#FCE9E7; --blue:#3F6FD1; --violet:#8B5CD6;
+  --shadow:0 8px 22px rgba(18,49,33,.07);
+  --radius:22px;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--txt);
+  font-family:-apple-system,"Roboto","Segoe UI",system-ui,sans-serif;
+  font-size:14.5px; line-height:1.45; overflow-x:hidden;
+}
+.glow{position:fixed; border-radius:50%; filter:blur(70px); opacity:.5; pointer-events:none; z-index:0}
+.glow.a{width:320px;height:320px; top:-120px; right:-90px; background:radial-gradient(circle,#9FF0C6,transparent 70%)}
+.glow.b{width:300px;height:300px; bottom:180px; left:-140px; background:radial-gradient(circle,#CDBBF7,transparent 70%)}
+#wrap{position:relative; z-index:1; max-width:560px; margin:0 auto; min-height:100vh; padding-bottom:110px}
+
+/* ---------- topbar ---------- */
+#topbar{display:none; align-items:center; gap:12px; padding:calc(env(safe-area-inset-top) + 14px) 16px 6px}
+#topbar.show{display:flex}
+#topbar .ttl{font-size:19px; font-weight:800}
+.back{width:38px;height:38px;border-radius:14px;background:var(--card);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);cursor:pointer;flex:none}
+.back svg{width:18px;height:18px;fill:none;stroke:var(--txt);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.back:active{transform:scale(.94)}
+
+/* ---------- headers ---------- */
+.screen{padding:calc(env(safe-area-inset-top) + 10px) 16px 0}
+#topbar.show + .screen{padding-top:6px}
+.hrow{display:flex; align-items:center; gap:12px; padding-top:6px}
+.av{width:44px;height:44px;border-radius:15px;background:linear-gradient(135deg,#34D07F,#128A50);
+  display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:18px;
+  box-shadow:0 8px 18px rgba(18,138,80,.30); position:relative; flex:none}
+.av .dot{position:absolute; right:-2px; bottom:-2px; width:12px;height:12px;border-radius:50%;
+  background:#26D07C; border:2.5px solid var(--bg)}
+.hname{font-weight:800;font-size:16.5px}
+.hsub{font-size:11.5px;color:var(--mute)}
+h1{font-size:26px;font-weight:800;margin:16px 0 2px;letter-spacing:-.4px}
+h1 small{display:block;font-size:13px;font-weight:600;color:var(--mute);letter-spacing:0;margin-top:2px}
+.sec{display:flex;align-items:center;justify-content:space-between;margin:20px 0 10px}
+.sec b{font-size:13.5px;font-weight:800}
+.sec .cnt{font-size:11px;color:var(--mute);background:var(--card);border:1px solid var(--line);
+  padding:3px 9px;border-radius:999px;font-weight:700}
+
+/* ---------- cards ---------- */
+.card{background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px; margin-bottom:12px}
+.hero{background:linear-gradient(160deg,#EAFAF2,#DDF6EA); border:1.5px solid var(--acc-line);
+  border-radius:26px; padding:16px; margin-bottom:14px; box-shadow:0 10px 26px rgba(18,138,80,.13)}
+.hero .top{display:flex;align-items:center;gap:14px}
+.gi{border-radius:16px;background:linear-gradient(135deg,#34D07F,#128A50);color:#fff;font-weight:800;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 8px 16px rgba(18,138,80,.25); flex:none}
+.gi.big{width:58px;height:58px;font-size:25px}
+.gi.mid{width:50px;height:50px;font-size:20px}
+.gi.sm{width:44px;height:44px;font-size:17px; border-radius:14px}
+.g0{background:linear-gradient(135deg,#34D07F,#128A50); box-shadow:0 8px 16px rgba(18,138,80,.25)}
+.g1{background:linear-gradient(135deg,#7BA7F0,#3F6FD1); box-shadow:0 8px 16px rgba(63,111,209,.28)}
+.g2{background:linear-gradient(135deg,#C79BF2,#8B5CD6); box-shadow:0 8px 16px rgba(139,92,214,.28)}
+.g3{background:linear-gradient(135deg,#FFC96B,#E08A1F); box-shadow:0 8px 16px rgba(224,138,31,.28)}
+.g4{background:linear-gradient(135deg,#FF8A7A,#DE4D4D); box-shadow:0 8px 16px rgba(222,77,77,.28)}
+.iname{font-weight:800;font-size:16px}
+.imeta{font-size:11.5px;color:var(--mute); margin-top:1px}
+.chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+.chip{background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:11.5px;
+  font-weight:600;color:#3D5348}
+.chip.mint{background:var(--acc-soft);border-color:rgba(47,191,113,.35);color:var(--acc2)}
+.chip.warn{background:var(--warn-soft);border-color:#F3DFC0;color:var(--warn)}
+.chip.lock{background:var(--card2);color:var(--mute)}
+.badge{display:inline-block;font-size:9.5px;font-weight:800;padding:3px 9px;border-radius:999px;
+  background:var(--acc-soft);color:var(--acc2);letter-spacing:.3px;flex:none}
+.badge.warn{background:var(--warn-soft);color:var(--warn)}
+.badge.mute{background:var(--card2);color:var(--mute)}
+.badge.violet{background:#F1E9FC;color:var(--violet)}
+.badge.blue{background:#E8EFFC;color:var(--blue)}
+
+/* ---------- buttons ---------- */
+.btn{border:none;border-radius:16px;padding:13px 18px;font-size:14.5px;font-weight:800;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;width:100%;transition:transform .12s}
+.btn:active{transform:scale(.975)}
+.btn.grad{background:linear-gradient(135deg,#34D07F,#1FA35E);color:#fff;
+  box-shadow:0 10px 22px rgba(47,191,113,.33)}
+.btn.grad:disabled{background:var(--card2);color:var(--mute);box-shadow:none}
+.btn.ghost{background:#fff;border:1.5px solid var(--line);color:var(--txt)}
+.btn.soft{background:var(--acc-soft);color:var(--acc2)}
+.btn.danger{background:var(--err-soft);color:var(--err)}
+.btn.sm{width:auto;padding:9px 15px;font-size:12.5px;border-radius:13px}
+.btn svg{width:18px;height:18px;fill:currentColor}
+.playcircle{width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;flex:none;
+  display:flex;align-items:center;justify-content:center;transition:transform .12s}
+.playcircle:active{transform:scale(.9)}
+.playcircle svg{width:22px;height:22px;fill:#fff}
+.playcircle.on{background:linear-gradient(135deg,#34D07F,#128A50);box-shadow:0 8px 16px rgba(18,138,80,.3)}
+.playcircle.off{background:var(--acc-soft)}
+.playcircle.off svg{fill:var(--acc2)}
+
+/* ---------- instance rows ---------- */
+.inst{display:flex;align-items:center;gap:13px;background:var(--card);border-radius:20px;padding:13px;
+  box-shadow:var(--shadow);margin-bottom:11px;cursor:pointer;border:1.5px solid transparent}
+.inst:active{transform:scale(.99)}
+.inst.active{background:var(--acc-soft);border-color:var(--acc-line)}
+.inst .col{flex:1;min-width:0}
+.inst .nm{font-weight:800;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.inst .mt{font-size:11px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.inst .arrow{color:var(--mute);font-size:20px;padding:0 4px}
+
+/* ---------- premium / banner ---------- */
+.prem{background:linear-gradient(135deg,#1FA35E,#12623A 60%,#0E4A2D);color:#fff;border-radius:26px;
+  padding:20px;box-shadow:0 14px 30px rgba(14,74,45,.35);position:relative;overflow:hidden}
+.prem:before{content:"";position:absolute;width:180px;height:180px;border-radius:50%;top:-70px;right:-50px;
+  background:radial-gradient(circle,rgba(105,236,170,.5),transparent 70%)}
+.prem h3{margin:0 0 6px;font-size:19px;font-weight:800}
+.prem p{margin:0 0 14px;font-size:12.5px;opacity:.88;line-height:1.5}
+.prem ul{margin:0 0 16px;padding-left:0;list-style:none;font-size:13px}
+.prem li{padding:5px 0 5px 26px;position:relative}
+.prem li:before{content:"✓";position:absolute;left:0;color:#69ECAA;font-weight:800}
+.note{font-size:11.5px;color:var(--mute);text-align:center;margin-top:10px}
+
+/* ---------- list rows (versions, java, downloads) ---------- */
+.row{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:18px;padding:13px 14px;
+  box-shadow:var(--shadow);margin-bottom:10px}
+.row .col{flex:1;min-width:0}
+.row .t{font-weight:700;font-size:14px}
+.row .s{font-size:11.5px;color:var(--mute);margin-top:1px}
+.num{width:32px;height:32px;border-radius:10px;color:#fff;font-weight:800;font-size:12px;
+  display:flex;align-items:center;justify-content:center;flex:none}
+.num.n8{background:linear-gradient(135deg,#FFC96B,#E08A1F)}
+.num.n17{background:linear-gradient(135deg,#7BA7F0,#3F6FD1)}
+.num.n21{background:linear-gradient(135deg,#34D07F,#128A50)}
+.num.n25{background:linear-gradient(135deg,#C79BF2,#8B5CD6)}
+
+/* ---------- search ---------- */
+.search{display:flex;gap:9px;margin-top:14px}
+.search input{flex:1;background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:13px 16px;
+  font-size:14px;outline:none;color:var(--txt)}
+.search input:focus{border-color:var(--acc-line)}
+.search button{border:none;border-radius:16px;background:linear-gradient(135deg,#34D07F,#1FA35E);
+  color:#fff;padding:0 18px;font-weight:800;cursor:pointer;box-shadow:0 8px 18px rgba(47,191,113,.3)}
+.types{display:flex;gap:8px;overflow-x:auto;padding:12px 0 4px;margin:0 -16px;padding-left:16px;padding-right:16px}
+.types::-webkit-scrollbar{display:none}
+.tchip{flex:none;background:#fff;border:1.5px solid var(--line);border-radius:999px;padding:8px 15px;
+  font-size:12.5px;font-weight:700;color:#3D5348;cursor:pointer}
+.tchip.on{background:linear-gradient(135deg,#34D07F,#1FA35E);border-color:transparent;color:#fff;
+  box-shadow:0 8px 16px rgba(47,191,113,.3)}
+
+/* ---------- mod cards ---------- */
+.mod{display:flex;align-items:center;gap:13px;background:var(--card);border-radius:20px;padding:13px;
+  box-shadow:var(--shadow);margin-bottom:11px}
+.mod .col{flex:1;min-width:0}
+.mod .tt{display:flex;align-items:center;gap:7px}
+.mod .tt b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mod .ds{font-size:11.5px;color:var(--mute);margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;
+  -webkit-box-orient:vertical;overflow:hidden}
+.mod .st{font-size:11px;color:var(--mute);margin-top:5px}
+.instbtn{flex:none}
+
+/* ---------- empty / hint ---------- */
+.empty{text-align:center;padding:44px 20px;color:var(--mute)}
+.empty .ic{font-size:44px;margin-bottom:10px}
+.empty b{display:block;color:var(--txt);font-size:15.5px;margin-bottom:5px}
+.empty span{font-size:12.5px}
+.hint{background:var(--acc-soft);border:1.5px solid var(--acc-line);color:#176B41;border-radius:16px;
+  padding:12px 14px;font-size:12.5px;font-weight:600;margin-bottom:12px}
+.hint.warn{background:var(--warn-soft);border-color:#F3DFC0;color:#96600F}
+
+/* ---------- wizard ---------- */
+.steps{display:flex;gap:6px;margin:16px 0 14px}
+.steps i{flex:1;height:5px;border-radius:99px;background:var(--line)}
+.steps i.on{background:linear-gradient(90deg,#34D07F,#1FA35E)}
+.wtitle{font-size:20px;font-weight:800}
+.wsub{font-size:12.5px;color:var(--mute);margin:4px 0 16px}
+.opt{display:flex;align-items:center;gap:13px;background:var(--card);border:1.5px solid transparent;
+  border-radius:18px;padding:14px;box-shadow:var(--shadow);margin-bottom:10px;cursor:pointer}
+.opt.on{border-color:var(--acc);background:var(--acc-soft)}
+.opt.dis{opacity:.55;cursor:not-allowed}
+.opt .col{flex:1}
+.opt .t{font-weight:800;font-size:14.5px}
+.opt .s{font-size:11.5px;color:var(--mute);margin-top:2px}
+.tick{width:24px;height:24px;border-radius:50%;border:2px solid var(--line);flex:none}
+.opt.on .tick{border-color:var(--acc);background:var(--acc);position:relative}
+.opt.on .tick:after{content:"✓";color:#fff;font-size:13px;font-weight:800;position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center}
+.wnav{display:flex;gap:10px;margin-top:18px}
+.wnav .btn{flex:1}
+input.text{width:100%;background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:14px 16px;
+  font-size:15px;outline:none;color:var(--txt);font-family:inherit}
+input.text:focus{border-color:var(--acc-line)}
+.slider{-webkit-appearance:none;width:100%;height:8px;border-radius:99px;background:var(--card2);outline:none;margin:16px 0 6px}
+.slider::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;
+  background:linear-gradient(135deg,#34D07F,#1FA35E);box-shadow:0 4px 12px rgba(47,191,113,.45);cursor:pointer}
+.slabels{display:flex;justify-content:space-between;font-size:11px;color:var(--mute);font-weight:700}
+
+/* ---------- tabbar ---------- */
+#tabbar{position:fixed;left:0;right:0;bottom:0;z-index:40;pointer-events:none}
+#tabbar .in{max-width:526px;margin:0 auto;display:flex;justify-content:space-between;gap:4px;
+  background:rgba(255,255,255,.96);backdrop-filter:blur(14px);border:1px solid rgba(226,233,229,.9);
+  border-radius:28px;margin:0 14px calc(env(safe-area-inset-bottom) + 12px);padding:8px;
+  box-shadow:0 16px 36px rgba(18,49,33,.16);pointer-events:auto}
+.tb{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 2px 7px;border-radius:20px;
+  cursor:pointer;color:var(--mute);transition:background .15s}
+.tb svg{width:23px;height:23px;fill:currentColor}
+.tb span{font-size:9.5px;font-weight:700;letter-spacing:.1px}
+.tb.on{background:var(--acc-soft);color:var(--acc2)}
+.tb:active{transform:scale(.95)}
+
+/* ---------- overlay progress ---------- */
+#ovl{position:fixed;left:14px;right:14px;bottom:calc(env(safe-area-inset-bottom) + 96px);z-index:45;
+  background:#143024;color:#fff;border-radius:20px;padding:13px 16px;box-shadow:0 16px 34px rgba(10,30,22,.4);
+  display:none}
+#ovl.show{display:block}
+#ovl .st{font-size:12.5px;font-weight:700;display:flex;justify-content:space-between;gap:10px}
+#ovl .st i{font-style:normal;color:#8FE9BC}
+.bar{height:7px;border-radius:99px;background:rgba(255,255,255,.16);margin-top:9px;overflow:hidden}
+.bar b{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#34D07F,#69ECAA);
+  transition:width .3s}
+.bar b.indet{width:40%!important;animation:slide 1.1s ease-in-out infinite}
+@keyframes slide{0%{margin-left:-40%}100%{margin-left:100%}}
+
+/* ---------- toast ---------- */
+#toast{position:fixed;left:50%;transform:translateX(-50%) translateY(20px);
+  bottom:calc(env(safe-area-inset-bottom) + 170px);z-index:60;max-width:86%;
+  background:#143024;color:#fff;padding:12px 18px;border-radius:999px;font-size:13px;font-weight:600;
+  opacity:0;pointer-events:none;transition:.25s;box-shadow:0 12px 28px rgba(10,30,22,.35);text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ---------- sheet ---------- */
+#sheet{position:fixed;inset:0;z-index:70;display:none;align-items:flex-end;justify-content:center;
+  background:rgba(15,35,26,.45)}
+#sheet.show{display:flex}
+#sheet .box{background:#fff;width:100%;max-width:560px;border-radius:28px 28px 0 0;padding:24px 20px
+  calc(env(safe-area-inset-bottom) + 24px);animation:up .22s ease}
+@keyframes up{from{transform:translateY(60px);opacity:.5}to{transform:none;opacity:1}}
+#sheet h4{margin:0 0 8px;font-size:18px;font-weight:800}
+#sheet p{margin:0 0 18px;font-size:13.5px;color:var(--mute);line-height:1.55}
+#sheet .btn{margin-top:9px}
+.grab{width:44px;height:5px;border-radius:99px;background:var(--line);margin:-8px auto 16px}
+
+/* ---------- misc ---------- */
+.spin{width:18px;height:18px;border-radius:50%;border:2.5px solid rgba(255,255,255,.35);
+  border-top-color:#fff;animation:spin .8s linear infinite;display:inline-block}
+.spin.dark{border-color:rgba(47,191,113,.25);border-top-color:var(--acc)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.kv{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.kv:last-child{border-bottom:none}
+.kv b{font-weight:700}
+.kv span{color:var(--mute)}
+.pbar{height:7px;background:var(--card2);border-radius:99px;overflow:hidden;margin-top:8px}
+.pbar b{display:block;height:100%;background:linear-gradient(90deg,#34D07F,#69ECAA);transition:width .25s}
+.banner{background:linear-gradient(135deg,#E9F9F0,#DDF6EA);border:1.5px solid var(--acc-line);border-radius:20px;
+  padding:14px 16px;display:flex;align-items:center;gap:13px;margin-bottom:12px;cursor:pointer}
+.banner .col{flex:1}
+.banner b{font-size:14px}
+.banner .s{font-size:11.5px;color:#3E7A5D;margin-top:2px}
+.ai-locked{text-align:center;padding:30px 22px}
+.ai-locked .ic{width:76px;height:76px;border-radius:26px;margin:0 auto 16px;
+  background:linear-gradient(135deg,#C79BF2,#8B5CD6);display:flex;align-items:center;justify-content:center;
+  font-size:34px;box-shadow:0 14px 30px rgba(139,92,214,.35)}
+</style>
+</head>
+<body>
+<div class="glow a"></div><div class="glow b"></div>
+
+<div id="wrap">
+  <div id="topbar">
+    <div class="back" onclick="__back()"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></div>
+    <div class="ttl" id="ttltxt"></div>
+  </div>
+  <div class="screen" id="screen"></div>
+</div>
+
+<div id="tabbar"><div class="in" id="tabs"></div></div>
+
+<div id="ovl">
+  <div class="st"><span id="ovlStage">Установка…</span><i id="ovlPct"></i></div>
+  <div class="bar"><b id="ovlBar"></b></div>
+</div>
+<div id="toast"></div>
+
+<div id="sheet"><div class="box" id="sheetBox"><div class="grab"></div></div></div>
+
+<script>
+"use strict";
+/* ====================== мост ====================== */
+function A(m){var args=Array.prototype.slice.call(arguments,1);
+  return new Promise(function(res){
+    setTimeout(function(){
+      try{ var r=JSON.parse(window.Null[m].apply(window.Null,args)); res(r); }
+      catch(e){ res({ok:false,error:String(e&&e.message||e)}); }
+    },0);
+  });
+}
+function G(m){ /* сырые данные (без ok-обёртки) */
+  var args=Array.prototype.slice.call(arguments,1);
+  return new Promise(function(res){
+    setTimeout(function(){
+      try{ res(JSON.parse(window.Null[m].apply(window.Null,args))); }
+      catch(e){ res(null); }
+    },0);
+  });
+}
+
+/* ====================== состояние ====================== */
+var LIM=3;
+var S={
+  screen:"home", param:null, stack:[],
+  home:{account:null,instances:[],lastInstanceId:null},
+  sel:null, launch:{state:"idle",stage:""}, install:{on:false},
+  java:{installed:[],supported:[8,17,21,25]}, javaBusy:{major:-1,stage:"",progress:-1},
+  vers:[], versLoaded:false, versTab:"release",
+  q:"", ctype:"mod", hits:null, searching:false,
+  dls:[], wizard:null, detailId:null
+};
+var TABS=[
+  {id:"home",t:"Главная",svg:'<path d="M3 11.4 12 4l9 7.4V20a1 1 0 0 1-1 1h-5v-6H10v6H4a1 1 0 0 1-1-1z"/>'},
+  {id:"instances",t:"Сборки",svg:'<path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-2.2 14.3v-8.6l7.2 4.3Z"/>'},
+  {id:"catalog",t:"Каталог",svg:'<path d="M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 0h7v7h-7z"/>'},
+  {id:"downloads",t:"Загрузки",svg:'<path d="M11 3h2v9.2l3.4-3.4 1.4 1.4L12 16l-5.8-5.8 1.4-1.4L11 12.2zM5 19h14v2H5z"/>'},
+  {id:"profile",t:"Профиль",svg:'<path d="M12 12a4.6 4.6 0 1 0 0-9.2A4.6 4.6 0 0 0 12 12Zm0 2.2c-4.1 0-8 2.1-8 5.1V21h16v-1.7c0-3-3.9-5.1-8-5.1Z"/>'}
+];
+var SUB={versions:"Менеджер версий",wizard:"Новая сборка",detail:"Сборка",premium:"Premium",ai:"AI-ассистент"};
+var TYPES=[["mod","Моды"],["modpack","Модпаки"],["resourcepack","Ресурс-паки"],["shaderpack","Шейдеры"],["datapack","Датапаки"]];
+
+/* ====================== утилиты ====================== */
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function gclass(seed){var h=0;seed=String(seed||"x");
+  for(var i=0;i<seed.length;i++)h=(h*31+seed.charCodeAt(i))|0;
+  return "g"+(((h%5)+5)%5);}
+function letter(n){return (n||"?").trim().charAt(0).toUpperCase()||"?";}
+function fmtSize(b){if(!b)return "—";if(b<1024)return b+" Б";
+  if(b<1048576)return (b/1024).toFixed(0)+" КБ";return (b/1048576).toFixed(1)+" МБ";}
+function fmtNum(n){n=+n||0;return String(n).replace(/\B(?=(\d{3})+(?!\d))/g," ");}
+function fmtTime(t){var d=new Date(t);function p(x){return (x<10?"0":"")+x;}
+  return p(d.getDate())+"."+p(d.getMonth()+1)+", "+p(d.getHours())+":"+p(d.getMinutes());}
+function instById(id){var a=S.home.instances||[];for(var i=0;i<a.length;i++)if(a[i].id===id)return a[i];return null;}
+function selInst(){return instById(S.sel);}
+function toast(m){var el=document.getElementById("toast");el.textContent=m;
+  el.classList.add("show");clearTimeout(el._t);el._t=setTimeout(function(){el.classList.remove("show");},3200);}
+function sheet(o){
+  var box=document.getElementById("sheetBox");
+  box.innerHTML='<div class="grab"></div><h4>'+esc(o.title)+'</h4>'+
+    (o.text?'<p>'+o.text+'</p>':'')+
+    (o.actions||[]).map(function(a,i){
+      return '<button class="btn '+(a.cls||"ghost")+'" data-sheet="'+i+'">'+esc(a.label)+'</button>';}).join("");
+  var root=document.getElementById("sheet");root.classList.add("show");
+  box.onclick=function(e){
+    var b=e.target.closest("[data-sheet]");if(!b)return;
+    var a=o.actions[+b.getAttribute("data-sheet")];
+    root.classList.remove("show");if(a.fn)a.fn();
+  };
+  root.onclick=function(e){if(e.target===root)root.classList.remove("show");};
+}
+function updOverlay(){
+  var o=document.getElementById("ovl");
+  if(S.install.on){o.classList.add("show");
+    document.getElementById("ovlStage").textContent=S.install.stage||"Установка…";
+    var bar=document.getElementById("ovlBar"),pct=document.getElementById("ovlPct");
+    if(S.install.total>0){var v=Math.min(100,Math.round(S.install.done*100/S.install.total));
+      bar.classList.remove("indet");bar.style.width=v+"%";pct.textContent=v+"%";}
+    else{bar.classList.add("indet");pct.textContent="";}
+  } else o.classList.remove("show");
+}
+
+/* ====================== роутер ====================== */
+function go(sc,param,push){
+  if(push!==false&&sc!==S.screen)S.stack.push({s:S.screen,p:S.param});
+  S.screen=sc;S.param=(param===undefined?null:param);render();window.scrollTo(0,0);
+}
+function goTab(id){
+  S.stack=[];S.screen=id;S.param=null;render();window.scrollTo(0,0);
+  if(id==="downloads")loadDownloads();
+}
+function __back(){
+  if(S.stack.length){var e=S.stack.pop();S.screen=e.s;S.param=e.p;render();return true;}
+  return false;
+}
+window.__back=__back;
+
+/* ====================== события из Kotlin ====================== */
+window.__push=function(type,obj){
+  if(type==="launch"){
+    S.launch=obj;
+    if(obj.state==="failed"){
+      toast(obj.stage+(obj.details?": "+obj.details:""));
+      if(S.screen==="detail")refreshDetail();
+    }
+    if(S.screen==="home"||S.screen==="detail")render();
+  }
+  else if(type==="install"){
+    S.install=obj;updOverlay();
+    if(!obj.on){refreshData();if(S.screen==="versions"||S.screen==="catalog"||S.screen==="home")render();}
+  }
+  else if(type==="error"){toast(obj.message);}
+  else if(type==="java"){
+    S.javaBusy=obj;
+    if(S.screen==="profile"){
+      if(obj.major<0)refreshJava();
+      else render();
+    }
+  }
+};
+
+/* ====================== загрузка данных ====================== */
+async function refreshData(){
+  var h=await G("home");if(h)S.home=h;
+  if(!S.sel||!instById(S.sel))S.sel=S.home.lastInstanceId||(S.home.instances[0]||{}).id||null;
+  S.dls=((await G("downloads"))||{}).records||[];
+}
+async function refreshJava(){
+  var j=await G("javaInfo");
+  if(j){S.java={installed:j.installed||[],supported:j.supported||S.java.supported};}
+  render();
+}
+
+/* ====================== рендер ====================== */
+function render(){
+  var prev=window.scrollY;
+  var top=document.getElementById("topbar"),el=document.getElementById("screen");
+  if(SUB[S.screen]){top.classList.add("show");document.getElementById("ttltxt").textContent=SUB[S.screen];}
+  else top.classList.remove("show");
+  var html="";
+  switch(S.screen){
+    case "home":html=vHome();break;
+    case "instances":html=vInstances();break;
+    case "catalog":html=vCatalog();break;
+    case "downloads":html=vDownloads();break;
+    case "profile":html=vProfile();break;
+    case "versions":html=vVersions();break;
+    case "wizard":html=vWizard();break;
+    case "detail":html=vDetail();break;
+    case "premium":html=vPremium();break;
+    case "ai":html=vAi();break;
+  }
+  el.innerHTML=html;
+  document.getElementById("tabs").innerHTML=TABS.map(function(t){
+    return '<div class="tb '+(S.screen===t.id?"on":"")+'" data-tab="'+t.id+'">'+
+      '<svg viewBox="0 0 24 24">'+t.svg+'</svg><span>'+t.t+'</span></div>';}).join("");
+  bind();window.scrollTo(0,prev);
+}
+
+/* ---------- Главная ---------- */
+function vHome(){
+  var acc=S.home.account, name=acc?acc.name:"Игрок";
+  var list=S.home.instances||[], last=instById(S.home.lastInstanceId)||list[0]||null;
+  var running=S.launch.state==="running", prep=S.launch.state==="preparing";
+  var h='<div class="hrow"><div class="av">'+esc(letter(name))+'<div class="dot"></div></div>'+
+    '<div style="flex:1"><div class="hname">'+esc(name)+'</div>'+
+    '<div class="hsub">'+(acc?(acc.type==="microsoft"?"Microsoft аккаунт":"Офлайн-аккаунт"):"Аккаунт не добавлен")+'</div></div>'+
+    '<span class="badge">'+list.length+'/'+LIM+'</span></div>';
+  h+='<h1>'+(list.length?"Продолжим?":"Привет!")+'<small>'+(list.length?
+      "Выбирай сборку и врывайся в игру":"Создай первую сборку за пару минут")+'</small></h1>';
+  if(last){
+    h+='<div class="hero"><div class="top"><div class="gi big '+gclass(last.id)+'">'+esc(letter(last.name))+'</div>'+
+      '<div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:800;color:#1FA35E;letter-spacing:.6px">ПРОДОЛЖИТЬ ИГРУ</div>'+
+      '<div class="iname">'+esc(last.name)+'</div>'+
+      '<div class="imeta">'+esc(last.loaderLabel)+' '+esc(last.versionId)+' · '+last.memoryMb/1024+' ГБ RAM · '+last.mods+' модов</div></div></div>'+
+      '<div class="chips">'+
+        '<span class="chip">'+(last.installed?"Установлена":"Версия не установлена")+'</span>'+
+        '<span class="chip mint">Java '+(last.versionId>="1.21"?"21":"17")+'</span>'+
+        (last.lastPlayedAt?'<span class="chip">Играли '+fmtTime(last.lastPlayedAt)+'</span>':"")+
+      '</div>'+
+      '<div style="height:13px"></div>'+
+      '<button class="btn grad" data-act="play" data-id="'+esc(last.id)+'" '+(prep||running?"disabled":"")+'>'+
+        (prep?'<span class="spin"></span> '+esc(S.launch.stage||"Запуск…"):running?"Игра идёт — нажми на ▶ справа":"Играть")+
+      '</button></div>';
+    if(running){
+      h+='<button class="btn ghost" data-act="stop" style="margin-bottom:14px">Остановить игру</button>';
+    }
+  }
+  h+='<div class="sec"><b>Твои сборки</b><span class="cnt">'+list.length+' из '+LIM+'</span></div>';
+  if(!list.length){
+    h+='<div class="empty"><div class="ic">🎮</div><b>Пока пусто</b>'+
+      '<span>Создай сборку — мастер проведёт по 5 шагам</span></div>';
+  }
+  list.forEach(function(i){
+    h+='<div class="inst'+(last&&i.id===last.id?" active":"")+'" data-act="detail" data-id="'+esc(i.id)+'">'+
+      '<div class="gi mid '+gclass(i.id)+'">'+esc(letter(i.name))+'</div>'+
+      '<div class="col"><div class="nm">'+esc(i.name)+'</div>'+
+      '<div class="mt">'+esc(i.loaderLabel)+' '+esc(i.versionId)+' · '+i.memoryMb/1024+' ГБ · '+i.mods+' модов</div></div>'+
+      '<button class="playcircle '+(i.id===(last||{}).id?"on":"off")+'" data-act="play" data-id="'+esc(i.id)+'">'+
+      '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button></div>';
+  });
+  if(list.length>=LIM){
+    h+='<div class="banner" data-act="go" data-go="premium"><div class="gi sm" style="background:linear-gradient(135deg,#FFC96B,#E08A1F)">★</div>'+
+      '<div class="col"><b>Достигнут лимит 3 сборки</b><div class="s">Premium — безлимит, бэкапы и ИИ</div></div><span class="arrow" style="color:#7E968B;font-size:20px">›</span></div>';
+  }
+  h+='<div class="sec"><b>Быстрые действия</b></div>'+
+    '<div style="display:flex;gap:10px">'+
+    '<button class="btn soft" data-act="go" data-go="wizard">＋ Новая сборка</button>'+
+    '<button class="btn ghost" data-act="go" data-go="versions">Версии</button></div>'+
+    '<div class="banner" data-act="go" data-go="ai" style="margin-top:12px">'+
+    '<div class="gi sm" style="background:linear-gradient(135deg,#C79BF2,#8B5CD6)">✦</div>'+
+    '<div class="col"><b>AI-ассистент</b><div class="s">Помощь с модами и вылетами — скоро</div></div>'+
+    '<span class="badge violet">скоро</span></div>';
+  return h;
+}
+
+/* ---------- Сборки ---------- */
+function vInstances(){
+  var list=S.home.instances||[];
+  var h='<div class="hrow"><div style="flex:1"><div class="hname">Сборки</div>'+
+    '<div class="hsub">Версии, загрузчики, память и моды</div></div>'+
+    '<button class="btn grad sm" data-act="new">＋ Создать</button></div>';
+  h+='<div class="sec"><b>Список</b><span class="cnt">'+list.length+' из '+LIM+'</span></div>';
+  if(!list.length){
+    h+='<div class="empty"><div class="ic">📦</div><b>Нет сборок</b><span>Мастер создаст первую за 5 шагов</span></div>'+
+      '<button class="btn grad" data-act="new">Создать сборку</button>';
+  }
+  list.forEach(function(i){
+    h+='<div class="inst" data-act="detail" data-id="'+esc(i.id)+'">'+
+      '<div class="gi mid '+gclass(i.id)+'">'+esc(letter(i.name))+'</div>'+
+      '<div class="col"><div class="nm">'+esc(i.name)+'</div>'+
+      '<div class="mt">'+esc(i.loaderLabel)+' '+esc(i.versionId)+' · '+i.memoryMb/1024+' ГБ · '+i.mods+' модов</div></div>'+
+      '<span class="arrow">›</span></div>';
+  });
+  if(list.length>=LIM){
+    h+='<div class="hint warn">Бесплатный лимит — '+LIM+' сборки. В Premium будет безлимит.</div>'+
+      '<button class="btn soft" data-act="go" data-go="premium">Узнать о Premium</button>';
+  }
+  h+='<div class="note">Импорт .mrpack-модпаков и тач-редактор — в классическом интерфейсе</div>';
+  return h;
+}
+
+/* ---------- Детали сборки ---------- */
+function vDetail(){
+  var i=instById(S.param);if(!i)return '<div class="empty"><b>Сборка не найдена</b></div>';
+  var prep=S.launch.state==="preparing",running=S.launch.state==="running";
+  var h='<div class="hrow" style="margin-bottom:4px"><div class="gi big '+gclass(i.id)+'">'+esc(letter(i.name))+'</div>'+
+    '<div style="flex:1"><div class="hname">'+esc(i.name)+'</div><div class="hsub">'+esc(i.loaderLabel)+' '+esc(i.versionId)+'</div></div></div>';
+  h+='<div class="card" style="margin-top:14px">'+
+    '<div class="kv"><span>Версия Minecraft</span><b>'+esc(i.versionId)+'</b></div>'+
+    '<div class="kv"><span>Загрузчик</span><b>'+esc(i.loaderLabel)+(i.loaderVersion?" "+esc(i.loaderVersion):"")+'</b></div>'+
+    '<div class="kv"><span>Модов установлено</span><b>'+i.mods+'</b></div>'+
+    '<div class="kv"><span>Состояние</span><b>'+(i.installed?"Готова к запуску":"Нужно установить версию")+'</b></div></div>';
+  h+='<div class="card"><b style="font-size:14px">Память</b>'+
+    '<div style="font-size:12.5px;color:var(--mute);margin-top:2px">Выделено под игру: <b id="memv" style="color:var(--txt)">'+(i.memoryMb/1024).toFixed(1).replace(".0","")+' ГБ</b></div>'+
+    '<input type="range" class="slider" id="mem" min="1024" max="8192" step="512" value="'+i.memoryMb+'">'+
+    '<div class="slabels"><span>1 ГБ</span><span>8 ГБ</span></div></div>';
+  if(i.loader!=="vanilla"){
+    h+='<div class="card"><b style="font-size:14px">Загрузчик</b>'+
+      '<div style="font-size:12px;color:var(--mute);margin:4px 0 12px">Если версия ещё не поставлена — нажми «Установить загрузчик»</div>'+
+      '<button class="btn soft" data-act="loader" data-id="'+esc(i.id)+'">Установить загрузчик '+esc(i.loaderLabel)+'</button></div>';
+  }
+  h+='<button class="btn grad" data-act="play" data-id="'+esc(i.id)+'" '+(prep?"disabled":"")+'>'+
+    (prep?'<span class="spin"></span> '+esc(S.launch.stage||"Запуск…"):running?"Игра идёт":"Играть")+'</button>'+
+    '<div style="height:10px"></div>'+
+    '<button class="btn ghost" data-act="go" data-go="versions">Менеджер версий</button>'+
+    '<div style="height:10px"></div>'+
+    '<button class="btn ghost" data-act="rename" data-id="'+esc(i.id)+'">Переименовать</button>'+
+    '<div style="height:10px"></div>'+
+    '<button class="btn danger" data-act="del" data-id="'+esc(i.id)+'">Удалить сборку</button>';
+  return h;
+}
+
+/* ---------- Каталог ---------- */
+function vCatalog(){
+  var list=S.home.instances||[];
+  var h='<div class="hrow"><div style="flex:1"><div class="hname">Каталог</div>'+
+    '<div class="hsub">Моды и паки с Modrinth — бесплатно</div></div></div>';
+  h+='<div class="search"><input id="q" placeholder="Поиск: sodium, shaders…" value="'+esc(S.q)+'">'+
+    '<button data-act="search">Найти</button></div>';
+  h+='<div class="types">'+TYPES.map(function(t){
+    return '<div class="tchip '+(S.ctype===t[0]?"on":"")+'" data-act="ctype" data-t="'+t[0]+'">'+t[1]+'</div>';}).join("")+'</div>';
+  if(list.length>1){
+    h+='<div class="types" style="padding-top:4px">'+list.map(function(i){
+      return '<div class="tchip '+(S.sel===i.id?"on":"")+'" data-act="sel" data-id="'+esc(i.id)+'">'+esc(i.name)+'</div>';}).join("")+'</div>';
+  }
+  var target=selInst();
+  h+='<div class="hint" style="margin-top:10px">'+(target?
+    "Установка в: <b>"+esc(target.name)+"</b> ("+esc(target.loaderLabel)+" "+esc(target.versionId)+")":
+    "Сначала создай или выбери сборку — в неё установятся моды")+'</div>';
+  if(S.searching){
+    h+='<div class="empty"><span class="spin dark"></span><div style="margin-top:12px">Ищем на Modrinth…</div></div>';
+  }else if(S.hits===null){
+    h+='<div class="empty"><div class="ic">🔍</div><b>Что ищем?</b><span>Введи название или выбери категорию</span></div>';
+  }else if(!S.hits.length){
+    h+='<div class="empty"><div class="ic">🤷</div><b>Ничего не нашлось</b><span>Попробуй другой запрос</span></div>';
+  }else{
+    h+=S.hits.map(function(mk){
+      return '<div class="mod"><div class="gi mid '+gclass(mk.slug||mk.projectId)+'">'+
+        '<svg viewBox="0 0 24 24" width="22" height="22" fill="#fff"><path d="M14.6 3.2 20.8 9.4a1 1 0 0 1 0 1.4l-9.8 9.8a1 1 0 0 1-1.4 0l-6.2-6.2a1 1 0 0 1 0-1.4l9.8-9.8a1 1 0 0 1 1.4 0Zm-6 8.6 3 3-4.4 4.4a2 2 0 0 1-2.8-2.8Z"/></svg></div>'+
+        '<div class="col"><div class="tt"><b>'+esc(mk.title)+'</b>'+
+        '<span class="badge '+(S.ctype==="mod"?"":"violet")+'">'+typeName(S.ctype)+'</span></div>'+
+        '<div class="ds">'+esc(mk.description||"")+'</div>'+
+        '<div class="st">⬇ '+fmtNum(mk.downloads)+' загрузок · '+esc(mk.author)+'</div></div>'+
+        '<button class="btn grad sm instbtn" data-act="install" data-pid="'+esc(mk.projectId)+'">Установить</button></div>';
+    }).join("");
+  }
+  return h;
+}
+function typeName(t){for(var i=0;i<TYPES.length;i++)if(TYPES[i][0]===t)return TYPES[i][1].replace(/ы$/,"").replace(/и$/,"");return t;}
+
+/* ---------- Загрузки ---------- */
+function vDownloads(){
+  var h='<div class="hrow"><div style="flex:1"><div class="hname">Загрузки</div>'+
+    '<div class="hsub">Журнал установок</div></div></div><div style="height:8px"></div>';
+  if(!S.dls.length){
+    h+='<div class="empty"><div class="ic">📥</div><b>Пока пусто</b><span>Здесь появятся версии, моды и паки</span></div>';
+  }
+  S.dls.forEach(function(r){
+    h+='<div class="row"><div class="num '+(r.ok?"":"")+'" style="'+(r.ok?
+      "background:linear-gradient(135deg,#34D07F,#128A50)":"background:linear-gradient(135deg,#FF8A7A,#DE4D4D)")+'">'+
+      (r.ok?"✓":"!")+'</div>'+
+      '<div class="col"><div class="t">'+esc(r.name)+'</div>'+
+      '<div class="s">'+esc(r.detail)+' · '+fmtTime(r.at)+'</div></div>'+
+      '<span class="chip">'+(r.size?fmtSize(r.size):"—")+'</span></div>';
+  });
+  return h;
+}
+
+/* ---------- Профиль ---------- */
+function vProfile(){
+  var acc=S.home.account;
+  var h='<div class="hrow"><div class="av">'+esc(letter(acc?acc.name:"Г"))+'<div class="dot"></div></div>'+
+    '<div style="flex:1"><div class="hname">'+esc(acc?acc.name:"Гость")+'</div>'+
+    '<div class="hsub">'+(acc?(acc.type==="microsoft"?"Microsoft аккаунт":"Офлайн-аккаунт"):"Аккаунт не создан")+'</div></div></div>';
+  h+='<div class="sec"><b>Аккаунт</b></div>';
+  if(acc){
+    h+='<div class="card"><div class="kv"><span>Имя игрока</span><b>'+esc(acc.name)+'</b></div>'+
+      '<div class="kv"><span>Тип</span><b>'+(acc.type==="microsoft"?"Microsoft":"Офлайн")+'</b></div>'+
+      '<div style="height:12px"></div><button class="btn danger" data-act="logout">Удалить аккаунт</button></div>';
+  }else{
+    h+='<div class="card"><div style="font-size:12.5px;color:var(--mute);margin-bottom:10px">'+
+      'Офлайн-аккаунт подходит для локальной игры. Microsoft-вход — через код устройства.</div>'+
+      '<input class="text" id="offname" placeholder="Имя игрока (A-Z, a-z, 0-9, _)" maxlength="16">'+
+      '<div style="height:10px"></div>'+
+      '<div style="display:flex;gap:10px"><button class="btn soft" data-act="addoff">Офлайн</button>'+
+      '<button class="btn ghost" data-act="mslogin">Microsoft</button></div></div>';
+  }
+  h+='<div class="sec"><b>Java Runtime</b><span class="cnt">'+S.java.installed.length+' из '+S.java.supported.length+'</span></div>';
+  h+='<div class="card">'+S.java.supported.map(function(m){
+    var has=S.java.installed.indexOf(m)>=0;
+    var hint=m===8?"Minecraft до 1.16":m===17?"1.17 – 1.20.4":m===21?"1.20.5 – 1.21.x":"26.x и новее";
+    var busy=S.javaBusy.major===m;
+    var pr=S.javaBusy.progress;
+    return '<div style="display:flex;align-items:center;gap:11px;padding:8px 0">'+
+      '<div class="num n'+m+'">'+m+'</div>'+
+      '<div class="col" style="flex:1"><div class="t" style="font-size:13.5px">Java '+m+
+      (has?' <span class="badge" style="margin-left:6px">установлена</span>':"")+'</div>'+
+      '<div class="s">'+hint+'</div>'+
+      (busy?'<div class="pbar"><b style="width:'+(pr>=0?pr:60)+'%"></b></div><div class="s" style="margin-top:3px">'+esc(S.javaBusy.stage||"Установка…")+'</div>':"")+
+      '</div>'+
+      (busy?'<span class="spin dark"></span>':
+        '<button class="btn soft sm" data-act="jinstall" data-m="'+m+'">'+(has?"Переустановить":"Установить")+'</button>')+
+      '</div>';}).join("")+
+    '<div class="note" style="margin-top:6px">Нужная Java ставится автоматически при первом запуске</div></div>';
+  h+='<div class="sec"><b>Premium</b></div>'+
+    '<div class="prem"><h3>Безлимит и облако</h3>'+
+    '<p>Подписка открывает все возможности лаунчера</p>'+
+    '<ul><li>Безлимит сборок</li><li>Облачные бэкапы миров</li><li>AI-ассистент</li></ul>'+
+    '<button class="btn" style="background:#fff;color:#0E4A2D" data-act="go" data-go="premium">Подробнее</button></div>';
+  h+='<div class="sec"><b>Ещё</b></div>'+
+    '<button class="btn ghost" data-act="go" data-go="ai" style="margin-bottom:10px">AI-ассистент <span class="badge violet" style="margin-left:6px">скоро</span></button>'+
+    '<button class="btn ghost" data-act="classic" style="margin-bottom:10px">Классический интерфейс</button>'+
+    '<div class="note">nullLauncher Mobile · 0.1.0</div>';
+  return h;
+}
+
+/* ---------- Менеджер версий ---------- */
+function vVersions(){
+  var h='<div class="types" style="margin-top:6px">'+
+    [["release","Релизы"],["all","Все"],["old","Старые"]].map(function(t){
+      return '<div class="tchip '+(S.versTab===t[0]?"on":"")+'" data-act="vtab" data-t="'+t[0]+'">'+t[1]+'</div>';}).join("")+'</div>';
+  if(!S.versLoaded||!S.vers.length){
+    h+='<div class="empty"><span class="spin dark"></span><div style="margin-top:12px">Загружаем список версий…</div></div>';
+    return h;
+  }
+  h+='<div style="height:8px"></div>'+S.vers.map(function(v){
+    return '<div class="row"><div class="num '+(v.type==="release"?"n21":"n17")+'">'+
+      (v.type==="release"?"★":"▪")+'</div>'+
+      '<div class="col"><div class="t">'+esc(v.id)+'</div>'+
+      '<div class="s">'+(v.type==="release"?"Релиз":v.type==="snapshot"?"Снапшот":"Старая версия")+'</div></div>'+
+      (v.installed?'<span class="badge">установлена</span>':
+        '<button class="btn grad sm" data-act="iversion" data-v="'+esc(v.id)+'">Установить</button>')+
+      '</div>';}).join("");
+  return h;
+}
+
+/* ---------- Мастер ---------- */
+function vWizard(){
+  var w=S.wizard;
+  var h='<div class="steps">'+[1,2,3,4,5].map(function(n){
+    return '<i class="'+(n<=w.step?"on":"")+'"></i>';}).join("")+'</div>';
+  if(w.step===1){
+    h+='<div class="wtitle">Название сборки</div><div class="wsub">Как будем называть? Можно оставить по умолчанию</div>'+
+      '<input class="text" id="wname" placeholder="Например: Ваниль 1.21" value="'+esc(w.name)+'" maxlength="28">'+
+      '<div class="wnav"><button class="btn ghost" data-act="wback">Назад</button>'+
+      '<button class="btn grad" data-act="wnext">Далее</button></div>';
+  }else if(w.step===2){
+    h+='<div class="wtitle">Версия игры</div><div class="wsub">Релизы Minecraft для установки</div>';
+    if(!S.vers.length){
+      h+='<div class="empty"><span class="spin dark"></span><div style="margin-top:12px">Загружаем версии…</div></div>';
+    }else{
+      h+='<div style="max-height:52vh;overflow:auto;padding-right:2px">'+
+        S.vers.filter(function(v){return v.type==="release";}).slice(0,40).map(function(v){
+          return '<div class="opt '+(w.versionId===v.id?"on":"")+'" data-act="wver" data-v="'+esc(v.id)+'">'+
+            '<div class="num n21">★</div><div class="col"><div class="t">'+esc(v.id)+'</div>'+
+            '<div class="s">Релиз'+(v.installed?" · уже установлена":"")+'</div></div><div class="tick"></div></div>';}).join("")+'</div>';
+    }
+    h+='<div class="wnav"><button class="btn ghost" data-act="wback">Назад</button>'+
+      '<button class="btn grad" data-act="wnext" '+(w.versionId?"":"disabled")+'>Далее</button></div>';
+  }else if(w.step===3){
+    h+='<div class="wtitle">Загрузчик</div><div class="wsub">Vanilla — чистая игра; Fabric — лёгкие моды</div>';
+    h+='<div class="opt '+(w.loader==="vanilla"?"on":"")+'" data-act="wload" data-l="vanilla">'+
+      '<div class="num n21">M</div><div class="col"><div class="t">Vanilla</div>'+
+      '<div class="s">Без модов, чистая игра</div></div><div class="tick"></div></div>';
+    h+='<div class="opt '+(w.loader==="fabric"?"on":"")+'" data-act="wload" data-l="fabric">'+
+      '<div class="num n17">F</div><div class="col"><div class="t">Fabric</div>'+
+      '<div class="s">Быстрые моды, Sodium и другие оптимизации</div></div><div class="tick"></div></div>';
+    h+='<div class="opt '+(w.loader==="quilt"?"on":"")+'" data-act="wload" data-l="quilt">'+
+      '<div class="num n25">Q</div><div class="col"><div class="t">Quilt</div>'+
+      '<div class="s">Современная альтернатива Fabric</div></div><div class="tick"></div></div>';
+    h+='<div class="opt dis"><div class="num n8">Fo</div><div class="col"><div class="t">Forge / NeoForge</div>'+
+      '<div class="s">Пока недоступны — в разработке</div></div><span class="badge warn">скоро</span></div>';
+    h+='<div class="wnav"><button class="btn ghost" data-act="wback">Назад</button>'+
+      '<button class="btn grad" data-act="wnext">Далее</button></div>';
+  }else if(w.step===4){
+    h+='<div class="wtitle">Память</div><div class="wsub">Сколько ОЗУ отдать игре. Больше — плавнее, но не больше половины телефона</div>'+
+      '<div class="card"><div style="font-size:15px;font-weight:800">Выделено: <span id="wmv">'+
+      (w.mem/1024).toFixed(1).replace(".0","")+' ГБ</span></div>'+
+      '<input type="range" class="slider" id="wmem" min="1024" max="8192" step="512" value="'+w.mem+'">'+
+      '<div class="slabels"><span>1 ГБ</span><span>4 ГБ</span><span>8 ГБ</span></div></div>'+
+      '<div class="wnav"><button class="btn ghost" data-act="wback">Назад</button>'+
+      '<button class="btn grad" data-act="wnext">Далее</button></div>';
+  }else{
+    h+='<div class="wtitle">Готово!</div><div class="wsub">Проверь и создай</div>'+
+      '<div class="card"><div class="kv"><span>Название</span><b>'+esc(w.name||("Сборка "+w.versionId))+'</b></div>'+
+      '<div class="kv"><span>Версия</span><b>'+esc(w.versionId)+'</b></div>'+
+      '<div class="kv"><span>Загрузчик</span><b>'+esc(w.loader)+'</b></div>'+
+      '<div class="kv"><span>Память</span><b>'+(w.mem/1024).toFixed(1).replace(".0","")+' ГБ</b></div></div>'+
+      '<div class="hint">Версия игры установится сразу после создания — не забудь подключить Wi-Fi</div>'+
+      '<div class="wnav"><button class="btn ghost" data-act="wback">Назад</button>'+
+      '<button class="btn grad" data-act="wcreate">Создать</button></div>';
+  }
+  return h;
+}
+
+/* ---------- Premium ---------- */
+function vPremium(){
+  return '<div class="prem" style="margin-top:8px"><h3>nullLauncher Premium</h3>'+
+    '<p>Подписка для тех, кто играет по-крупному</p>'+
+    '<ul><li>Безлимит сборок вместо трёх</li><li>Облачные бэкапы миров на Яндекс Диске</li>'+
+    '<li>AI-ассистент: чат, подбор модов, разбор вылетов</li></ul>'+
+    '<button class="btn" style="background:#fff;color:#0E4A2D" disabled>Оформление скоро</button></div>'+
+    '<div class="card"><div class="kv"><span>Сборки</span><b>3 → безлимит</b></div>'+
+    '<div class="kv"><span>Бэкапы</span><b>— → облако</b></div>'+
+    '<div class="kv"><span>AI</span><b>— → чат и анализ</b></div></div>'+
+    '<div class="hint">Оплата подключится через RuStore Pay вместе с выходом Premium. Импорт модпаков, тач-редактор и запуск игры — бесплатно для всех.</div>'+
+    '<button class="btn ghost" data-act="back">Назад</button>';
+}
+
+/* ---------- AI ---------- */
+function vAi(){
+  return '<div class="card ai-locked"><div class="ic">✦</div>'+
+    '<b style="font-size:17px">AI-ассистент</b>'+
+    '<div style="font-size:13px;color:var(--mute);margin-top:8px;line-height:1.55">Чат с помощником, подбор модов под твою сборку и разбор вылетов. Локальный анализатор ошибок уже работает и бесплатен.</div>'+
+    '<div style="height:16px"></div><span class="badge violet">в разработке</span></div>'+
+    '<div class="card"><div class="kv"><span>Разбор вылетов</span><b>Работает · бесплатно</b></div>'+
+    '<div class="kv"><span>Чат-помощник</span><b>Скоро</b></div>'+
+    '<div class="kv"><span>Подбор модов</span><b>Скоро</b></div></div>'+
+    '<button class="btn ghost" data-act="back">Назад</button>';
+}
+
+/* ====================== действия ====================== */
+async function play(id){
+  var inst=instById(id);if(!inst)return;
+  if(!S.home.account){sheet({title:"Нет аккаунта",
+    text:"Добавь аккаунт во вкладке «Профиль» — офлайн или настоящий Microsoft.",actions:[
+      {label:"Открыть профиль",cls:"grad",fn:function(){goTab("profile");}}]});return;}
+  S.sel=id;
+  var r=await A("launch",id);
+  if(r&&r.ok===false){
+    if(/менеджере версий/i.test(r.error||"")){
+      var v=inst.versionId;
+      sheet({title:"Minecraft "+v+" не установлена",text:"Скачать версию сейчас? (~200 МБ)",
+        actions:[{label:"Установить",cls:"grad",fn:function(){A("installVersion",v);}},
+                 {label:"Отмена"}]});
+    }else if(/Загрузчик/.test(r.error||"")){
+      var iid=id;
+      sheet({title:"Загрузчик не установлен",text:esc(r.error),
+        actions:[{label:"Установить загрузчик",cls:"grad",fn:function(){A("installLoaderFor",iid);}},
+                 {label:"Отмена"}]});
+    }else toast(r.error||"Ошибка запуска");
+  }
+}
+async function loadVersions(tab){
+  S.versTab=tab||S.versTab;
+  var r=await G("versions",S.versTab==="release"?"release":"all");
+  var list=(r&&r.versions)||[];
+  if(S.versTab==="old")list=list.filter(function(v){return v.type!=="release"&&v.type!=="snapshot";});
+  if(tab||!S.vers.length)S.vers=list;
+  S.versLoaded=true;render();
+}
+async function loadDownloads(){S.dls=((await G("downloads"))||{}).records||[];render();}
+async function doSearch(){
+  var q=(document.getElementById("q")||{}).value||"";
+  S.q=q.trim();
+  if(!S.q){S.hits=null;render();return;}
+  S.searching=true;render();
+  var r=await A("searchMods",S.q,S.ctype,S.sel||"");
+  S.searching=false;
+  if(r&&r.ok===false){toast(r.error);S.hits=[];}
+  else S.hits=(r&&r.hits)||[];
+  render();
+}
+
+document.addEventListener("click",async function(e){
+  var t=e.target.closest("[data-act],[data-tab],[data-go]");
+  if(!t)return;
+  var tab=t.getAttribute("data-tab");
+  if(tab){goTab(tab);return;}
+  var goS=t.getAttribute("data-go");
+  if(goS){go(goS);if(goS==="versions"&&!S.versLoaded)loadVersions();return;}
+  var act=t.getAttribute("data-act"),id=t.getAttribute("data-id");
+  switch(act){
+    case "play":e.stopPropagation();play(id);break;
+    case "stop":A("stopGame");break;
+    case "detail":go("detail",id);refreshDetail();break;
+    case "go":go(t.getAttribute("data-go"));if(t.getAttribute("data-go")==="versions"&&!S.versLoaded)loadVersions();break;
+    case "back":__back();break;
+    case "new":
+      if((S.home.instances||[]).length>=LIM){
+        sheet({title:"Лимит 3 сборки",text:"Бесплатная версия ограничена тремя сборками. Premium снимет лимит.",
+          actions:[{label:"Узнать о Premium",cls:"grad",fn:function(){go("premium");}},{label:"Закрыть"}]});
+      }else{S.wizard={step:1,name:"",versionId:null,loader:"vanilla",mem:2048};go("wizard");
+        if(!S.vers.length)loadVersions();}
+      break;
+    case "ctype":S.ctype=t.getAttribute("data-t");render();break;
+    case "sel":S.sel=id;render();break;
+    case "search":doSearch();break;
+    case "install":{
+      var target=selInst();
+      if(!target){toast("Сначала создай сборку");return;}
+      var pid=t.getAttribute("data-pid");
+      t.disabled=true;t.textContent="…";
+      var r=await A("installMod",pid,target.id,S.ctype);
+      if(r&&r.ok===false)toast(r.error);else toast("Установлено в «"+target.name+"»");
+      refreshData();break;}
+    case "vtab":loadVersions(t.getAttribute("data-t"));break;
+    case "iversion":A("installVersion",t.getAttribute("data-v"));break;
+    case "jinstall":A("installJava",+t.getAttribute("data-m"));break;
+    case "loader":A("installLoaderFor",id);break;
+    case "rename":renameSheet(id);break;
+    case "del":delSheet(id);break;
+    case "addoff":{
+      var nm=((document.getElementById("offname")||{}).value||"").trim();
+      if(nm.length<3){toast("Имя от 3 символов");return;}
+      var r2=await A("addOffline",nm);
+      if(r2&&r2.ok===false)toast(r2.error);else{toast("Аккаунт создан");refreshData();}
+      render();break;}
+    case "mslogin":
+      sheet({title:"Microsoft-вход",text:"Вход по коду устройства доступен в классическом интерфейсе.",
+        actions:[{label:"Открыть классический интерфейс",cls:"grad",fn:function(){window.Null.openClassic();}},
+                 {label:"Закрыть"}]});
+      break;
+    case "logout":
+      sheet({title:"Удалить аккаунт?",text:"Профиль игрока будет удалён из лаунчера.",
+        actions:[{label:"Удалить",cls:"danger",fn:function(){A("removeAccount");refreshData();render();}},
+                 {label:"Отмена"}]});
+      break;
+    case "classic":window.Null.openClassic();break;
+    /* --- мастер --- */
+    case "wback":
+      if(S.wizard.step>1){S.wizard.step--;render();}
+      else __back();
+      break;
+    case "wnext":wNext();break;
+    case "wver":S.wizard.versionId=t.getAttribute("data-v");render();break;
+    case "wload":S.wizard.loader=t.getAttribute("data-l");render();break;
+    case "wcreate":wCreate();break;
+  }
+});
+
+document.addEventListener("keydown",function(e){
+  if(e.key==="Enter"&&e.target&&e.target.id==="q")doSearch();
+});
+document.addEventListener("input",function(e){
+  var t=e.target;
+  if(t.id==="wmem"){S.wizard.mem=+t.value;
+    var el=document.getElementById("wmv");if(el)el.textContent=(t.value/1024).toFixed(1).replace(".0","")+" ГБ";}
+  if(t.id==="mem"){
+    var el2=document.getElementById("memv");
+    if(el2)el2.textContent=(t.value/1024).toFixed(1).replace(".0","")+" ГБ";
+    clearTimeout(window._memT);
+    window._memT=setTimeout(function(){A("setInstanceMemory",S.param,+t.value);refreshData();},500);
+  }
+});
+
+function bind(){
+  if(S.screen==="wizard"&&S.wizard.step===1){
+    var el=document.getElementById("wname");
+    if(el)el.oninput=function(){S.wizard.name=el.value;};
+  }
+  if(S.screen==="wizard"&&S.wizard.step===4){
+    var m=document.getElementById("wmem");
+    if(m)m.oninput=function(){S.wizard.mem=+m.value;
+      var v=document.getElementById("wmv");if(v)v.textContent=(m.value/1024).toFixed(1).replace(".0","")+" ГБ";};
+  }
+}
+
+async function wNext(){
+  var w=S.wizard;
+  if(w.step===1){var el=document.getElementById("wname");if(el)w.name=el.value.trim();}
+  if(w.step===2&&!w.versionId){toast("Выбери версию");return;}
+  if(w.step===5){wCreate();return;}
+  w.step++;render();
+  if(w.step===2&&!S.vers.length)loadVersions();
+}
+async function wCreate(){
+  var w=S.wizard;
+  if((S.home.instances||[]).length>=LIM){toast("Лимит 3 сборки");return;}
+  var r=await A("createInstance",w.name||("Сборка "+w.versionId),w.versionId,w.loader);
+  if(r&&r.ok===false){toast(r.error);return;}
+  var nid=r.data.id;
+  await A("setInstanceMemory",nid,w.mem);
+  await refreshData();
+  sheet({title:"Сборка создана!",text:"Установить Minecraft "+esc(w.versionId)+" сейчас? (~200 МБ)",
+    actions:[{label:"Установить",cls:"grad",fn:function(){A("installVersion",w.versionId);goTab("home");}},
+             {label:"Позже",fn:function(){goTab("home");}}]});
+}
+function renameSheet(id){
+  var i=instById(id);if(!i)return;
+  document.getElementById("sheetBox").innerHTML='<div class="grab"></div>'+
+    '<h4>Переименовать</h4><input class="text" id="rn" value="'+esc(i.name)+'" maxlength="28">'+
+    '<button class="btn grad" id="rnOk">Сохранить</button><button class="btn ghost" id="rnNo">Отмена</button>';
+  document.getElementById("sheet").classList.add("show");
+  document.getElementById("rnOk").onclick=function(){
+    var v=document.getElementById("rn").value.trim();
+    if(v){A("renameInstance",id,v);refreshData().then(render);}
+    document.getElementById("sheet").classList.remove("show");};
+  document.getElementById("rnNo").onclick=function(){document.getElementById("sheet").classList.remove("show");};
+}
+function delSheet(id){
+  var i=instById(id);if(!i)return;
+  sheet({title:"Удалить «"+esc(i.name)+"»?",text:"Файлы сборки останутся на устройстве, карточка исчезнет из списка.",
+    actions:[{label:"Удалить",cls:"danger",fn:function(){
+        A("deleteInstance",id);
+        setTimeout(async function(){await refreshData();
+          if(S.screen==="detail")__back();else render();},400);}},
+      {label:"Отмена"}]});
+}
+async function refreshDetail(){await refreshData();if(S.screen==="detail")render();}
+
+/* ====================== старт ====================== */
+async function boot(){
+  var h=await G("home");
+  if(h)S.home=h;
+  S.sel=S.home.lastInstanceId||(S.home.instances[0]||{}).id||null;
+  var j=await G("javaInfo");
+  if(j)S.java={installed:j.installed||[],supported:j.supported||S.java.supported};
+  S.dls=((await G("downloads"))||{}).records||[];
+  var p=await G("progressInfo");
+  if(p){S.launch=p.launch||S.launch;S.install=p.install||S.install;S.javaBusy=p.java||S.javaBusy;}
+  render();updOverlay();
+}
+boot();
+</script>
+</body>
+</html>
